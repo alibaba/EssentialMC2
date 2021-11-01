@@ -5,7 +5,7 @@
 We propose a new graph-based framework, namely Noisy Graph Clean- ing (NGC), which collects clean samples by leveraging
 ge- ometric structure of data and model predictive confidence.
 
-![流程](papers/ICCV2021-NGC/resources/procedure.jpg)
+![流程](resources/procedure.jpg)
 
 ## Results
 

@@ -6,7 +6,7 @@ This work proposes MoSI, a simple framework for the video models to learn motion
 shown that MoSI can discover and attend to prominent motions in videos, thus yielding a strong representation for the
 downstream action recognition task.
 
-![流程](papers/CVPR2021-MOSI/resources/procedure.jpg)
+![流程](resources/procedure.jpg)
 
 ## Example usage
 
