@@ -1,0 +1,12 @@
+addict
+yapf
+numpy
+opencv_transforms
+decord==0.6.0
+tensorboard
+packaging
+oss2
+torch>=1.5.1
+torchvision>=0.6.1
+opencv-python
+matplotlib

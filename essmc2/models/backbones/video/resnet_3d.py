@@ -1,0 +1,228 @@
+# Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+
+import torch.nn as nn
+
+from essmc2.models.registry import BACKBONES, STEMS, BRICKS
+from essmc2.utils.logger import get_logger
+from essmc2.utils.model import load_pretrained
+from .init_helper import _init_convnet_weights
+from .bricks.non_local import NonLocal
+
+_n_conv_resnet = {
+    10: (1, 1, 1, 1),
+    16: (2, 2, 2, 1),
+    18: (2, 2, 2, 2),
+    26: (2, 2, 2, 2),
+    34: (3, 4, 6, 3),
+    50: (3, 4, 6, 3),
+    101: (3, 4, 23, 3),
+    152: (3, 8, 36, 3),
+}
+
+
+class Base3DBlock(nn.Module):
+    def __init__(self,
+                 branch_name,
+                 dim_in,
+                 num_filters,
+                 kernel_size,
+                 downsampling,
+                 downsampling_temporal,
+                 expansion_ratio,
+                 branch_style="simple_block",
+                 bn_params=dict(),
+                 visual_cfg=dict(visualize=False, visualize_output_dir="")):
+        super(Base3DBlock, self).__init__()
+
+        if dim_in != num_filters or downsampling:
+            if downsampling:
+                if downsampling_temporal:
+                    _stride = [2, 2, 2]
+                else:
+                    _stride = [1, 2, 2]
+            else:
+                _stride = [1, 1, 1]
+            self.short_cut = nn.Conv3d(
+                dim_in,
+                num_filters,
+                kernel_size=1,
+                stride=_stride,
+                padding=0,
+                bias=False
+            )
+            self.short_cut_bn = nn.BatchNorm3d(
+                num_filters, **(bn_params or {})
+            )
+        self.conv_branch = BRICKS.get(branch_name)(dim_in,
+                                                   num_filters,
+                                                   kernel_size,
+                                                   downsampling,
+                                                   downsampling_temporal,
+                                                   expansion_ratio,
+                                                   branch_style=branch_style,
+                                                   bn_params=bn_params,
+                                                   **(visual_cfg or dict))
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        short_cut = x
+        if hasattr(self, "short_cut"):
+            short_cut = self.short_cut_bn(self.short_cut(short_cut))
+        x = self.relu(short_cut + self.conv_branch(x))
+        return x
+
+    def set_stage_block(self, stage_id, block_id):
+        if hasattr(self.conv_branch, "set_stage_block_id"):
+            self.conv_branch.set_stage_block_id(stage_id, block_id)
+
+
+class Base3DResStage(nn.Module):
+    """
+    ResNet Stage containing several blocks.
+    """
+
+    def __init__(
+            self,
+            num_blocks,
+            branch_name,
+            dim_in,
+            num_filters,
+            kernel_size,
+            downsampling,
+            downsampling_temporal,
+            expansion_ratio,
+            branch_style="simple_block",
+            bn_params=dict(),
+            non_local=False,
+            non_local_cfg=dict(),
+            visual_cfg=dict(visualize=False, visualize_output_dir="")
+    ):
+        super(Base3DResStage, self).__init__()
+        self.num_blocks = num_blocks
+
+        res_block = Base3DBlock(
+            branch_name,
+            dim_in,
+            num_filters,
+            kernel_size,
+            downsampling,
+            downsampling_temporal,
+            expansion_ratio,
+            branch_style=branch_style,
+            bn_params=bn_params,
+        )
+        self.add_module("res_{}".format(1), res_block)
+        for i in range(self.num_blocks - 1):
+            dim_in = num_filters
+            downsampling = False
+            res_block = Base3DBlock(
+                branch_name,
+                dim_in,
+                num_filters,
+                kernel_size,
+                downsampling,
+                downsampling_temporal,
+                expansion_ratio,
+                branch_style=branch_style,
+                bn_params=bn_params,
+                visual_cfg=visual_cfg
+            )
+            self.add_module("res_{}".format(i + 2), res_block)
+        if non_local:
+            non_local = NonLocal(dim_in, num_filters, bn_params=bn_params, **non_local_cfg, **visual_cfg)
+            self.add_module("nonlocal", non_local)
+
+    def forward(self, x):
+        # performs computation on the convolutions
+        for i in range(self.num_blocks):
+            res_block = getattr(self, "res_{}".format(i + 1))
+            x = res_block(x)
+
+        # performs non-local operations if specified.
+        if hasattr(self, "nonlocal"):
+            non_local = getattr(self, "nonlocal")
+            x = non_local(x)
+        return x
+
+    def set_stage_id(self, stage_id):
+        for i in range(self.num_blocks):
+            res_block = getattr(self, "res_{}".format(i + 1))
+            res_block.set_stage_block_id(stage_id, i)
+        if hasattr(self, "nonlocal"):
+            non_local = getattr(self, "nonlocal")
+            non_local.set_stage_block_id(stage_id, self.num_blocks)
+
+
+@BACKBONES.register_class()
+class ResNet3D(nn.Module):
+    def __init__(self,
+                 depth,
+                 num_input_channels=3,
+                 num_filters=(64, 64, 128, 256, 256),
+                 kernel_size=((1, 7, 7), (1, 3, 3), (1, 3, 3), (3, 3, 3), (3, 3, 3)),
+                 downsampling=(True, False, True, True, True),
+                 downsampling_temporal=(False, False, False, True, True),
+                 expansion_ratio=2,
+                 stem_name="DownSampleStem",
+                 branch_name="R2D3DBranch",
+                 non_local=(False, False, False, False, False),
+                 non_local_cfg=dict(),
+                 bn_params=dict(eps=1e-3, momentum=0.1),
+                 init_cfg=dict(),
+                 visual_cfg=dict(visualize=False, visualize_output_dir=""),
+                 use_pretrain=False,
+                 load_from="",
+                 ):
+        super(ResNet3D, self).__init__()
+
+        # Build stem
+        stem = dict(
+            type="DownSampleStem" if stem_name is None else stem_name,
+            dim_in=num_input_channels,
+            num_filters=num_filters[0],
+            kernel_size=kernel_size[0],
+            downsampling=downsampling[0],
+            downsampling_temporal=downsampling_temporal[0],
+            bn_params=bn_params,
+            **visual_cfg or {}
+        )
+        self.conv1 = STEMS.build(stem)
+        self.conv1.set_stage_block_id(0, 0)
+
+        # ------------------- Main arch -------------------
+        branch_style = "simple_block" if depth <= 34 else "bottleneck"
+        blocks_list = _n_conv_resnet[depth]
+
+        for stage_id, num_blocks in enumerate(blocks_list):
+            stage_id = stage_id + 1
+            conv = Base3DResStage(
+                num_blocks,
+                branch_name,
+                num_filters[stage_id - 1],
+                num_filters[stage_id],
+                kernel_size[stage_id],
+                downsampling[stage_id],
+                downsampling_temporal[stage_id],
+                expansion_ratio,
+                branch_style=branch_style,
+                bn_params=bn_params,
+                non_local=non_local[stage_id],
+                non_local_cfg=non_local_cfg,
+                visual_cfg=visual_cfg
+            )
+            setattr(self, f"conv{stage_id + 1}", conv)
+
+        # perform initialization
+        init_cfg = init_cfg or {}
+        if init_cfg.get("name") == "kaiming":
+            _init_convnet_weights(self)
+
+        # load pretrain
+        if use_pretrain:
+            load_pretrained(self, load_from, logger=get_logger())
+
+    def forward(self, video):
+        x = self.conv1(video)
+        for i in range(2, 6):
+            x = getattr(self, f"conv{i}")(x)
+        return x

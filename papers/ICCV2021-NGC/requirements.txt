@@ -1,0 +1,7 @@
+faiss-gpu
+torchnet
+pybind11
+torch>=1.5.1
+numpy
+scipy
+Pillow
