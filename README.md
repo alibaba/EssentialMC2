@@ -4,7 +4,8 @@
 
 EssentialMC2 is a complete system to solve video understanding tasks including MHRL(representation learning), MECR2(
 relation reasoning) and MOSL3(openset life-long learning) powered by [DAMO Academy](https://damo.alibaba.com/?lang=en)
-MinD(Machine IntelligenNce of Damo) Lab.
+MinD(Machine IntelligenNce of Damo) Lab. This codebase provides a comprehensive solution for video classification, 
+temporal detection and noise learning.
 
 ### Features
 
@@ -34,10 +35,20 @@ Will be released soon!
 
 ### SOTA Tasks
 
-|  Task   | Paper  |
-|  ----  | ----  |
-| [ICCV2021-NGC](/papers/ICCV2021-NGC)  | [link](https://arxiv.org/abs/2108.11035) |
-| [CVPR2021-MoSI](/papers/CVPR2021-MOSI) | [link](https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Self-Supervised_Motion_Learning_From_Static_Images_CVPR_2021_paper.pdf) |
+- NGC: A Unified Framework for Learning with Open-World Noisy Data <br>
+[[Project](papers/ICCV2021-NGC/README.md)] [[Paper](https://arxiv.org/abs/2108.11035)] **ICCV 2021**
+- Self-supervised Motion Learning from Static Images <br>
+[[Project](papers/CVPR2021-MOSI/README.md)] [[Paper](https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Self-Supervised_Motion_Learning_From_Static_Images_CVPR_2021_paper)] 
+**CVPR 2021 **
+- A Stronger Baseline for Ego-Centric Action Detection <br>
+[[Project](papers/pytorch-video-understanding/projects/epic-kitchen-tal/README.md)] [[Paper](https://arxiv.org/pdf/2106.06942)] 
+**First-place** submission to [EPIC-KITCHENS-100 Action Detection Challenge](https://competitions.codalab.org/competitions/25926#results)
+- Towards Training Stronger Video Vision Transformers for EPIC-KITCHENS-100 Action Recognition <br>
+[[Project](papers/pytorch-video-understanding/projects/epic-kitchen-ar/README.md)] [[Paper](https://arxiv.org/pdf/2106.05058)] 
+**Second-place** submission to [EPIC-KITCHENS-100 Action Recognition challenge](https://competitions.codalab.org/competitions/25923#results)
+- TAda! Temporally-Adaptive Convolutions for Video Understanding <br>
+[[Project](papers/pytorch-video-understanding/projects/tada/README.md)] [[Paper](https://arxiv.org/pdf/2110.06178.pdf)] 
+**Preprint**
 
 ### License
 

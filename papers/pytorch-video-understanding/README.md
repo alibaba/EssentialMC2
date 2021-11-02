@@ -1,5 +1,6 @@
 # pytorch-video-understanding
-This codebase provides a comprehensive video understanding solution for video classification and temporal detection. 
+This codebase provides a comprehensive video understanding solution for video classification and temporal detection.
+This codebase will be merged into EssentialMC2 codebase soon.
 
 Key features:
 - Video classification: State-of-the-art video models, with self-supervised representation learning approaches for pre-training, and supervised classification pipeline for fine-tuning. 
@@ -36,12 +37,6 @@ We include strong features for [HACS](http://hacs.csail.mit.edu/) and [Epic-Kitc
 
 The general pipeline for using this repo is the installation, data preparation and running.
 See [GUIDELINES.md](GUIDELINES.md).
-
-# Contributors
-
-This codebase is written and maintained by [Ziyuan Huang](https://huang-ziyuan.github.io/), [Zhiwu Qing](https://scholar.google.com/citations?user=q9refl4AAAAJ&hl=zh-CN) and [Xiang Wang](https://scholar.google.com/citations?user=cQbXvkcAAAAJ&hl=zh-CN).
-
-If you find our codebase useful, please consider citing the respective work :).
 
 # Upcoming 
 [ParamCrop: Parametric Cubic Cropping for Video Contrastive Learning](https://arxiv.org/abs/2108.10501).
