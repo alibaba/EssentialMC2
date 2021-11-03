@@ -38,7 +38,7 @@ Pretrained models can be found in the [MODEL_ZOO.md](MODEL_ZOO.md).
 - NGC: A Unified Framework for Learning with Open-World Noisy Data <br>
 [[Project](papers/ICCV2021-NGC/README.md)] [[Paper](https://arxiv.org/abs/2108.11035)] **ICCV 2021**
 - Self-supervised Motion Learning from Static Images <br>
-[[Project](papers/CVPR2021-MOSI/README.md)] [[Paper](https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Self-Supervised_Motion_Learning_From_Static_Images_CVPR_2021_paper)] **CVPR 2021 **
+[[Project](papers/CVPR2021-MOSI/README.md)] [[Paper](https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Self-Supervised_Motion_Learning_From_Static_Images_CVPR_2021_paper)] **CVPR 2021**
 - A Stronger Baseline for Ego-Centric Action Detection <br>
 [[Project](papers/pytorch-video-understanding/projects/epic-kitchen-tal/README.md)] [[Paper](https://arxiv.org/pdf/2106.06942)] 
 **First-place** submission to [EPIC-KITCHENS-100 Action Detection Challenge](https://competitions.codalab.org/competitions/25926#results)
