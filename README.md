@@ -1,5 +1,7 @@
 # EssentialMC2
 
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/essmc2)](https://pypi.org/project/essmc2/) [![PyPI](https://img.shields.io/pypi/v/essmc2)](https://pypi.org/project/essmc2) [![license](https://img.shields.io/github/license/alibaba/EssentialMC2.svg)](https://github.com/alibaba/EssentialMC2/blob/main/LICENSE)
+
 ### Introduction
 
 EssentialMC2 is a complete system to solve video understanding tasks including MHRL(representation learning), MECR2(
