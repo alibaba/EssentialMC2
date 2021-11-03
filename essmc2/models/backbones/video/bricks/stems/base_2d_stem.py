@@ -7,7 +7,7 @@ from ..visualize_3d_module import Visualize3DModule
 
 
 @STEMS.register_class()
-class Base3DStem(Visualize3DModule):
+class Base2DStem(Visualize3DModule):
     def __init__(self,
                  dim_in=3,
                  num_filters=64,
@@ -16,7 +16,7 @@ class Base3DStem(Visualize3DModule):
                  downsampling_temporal=False,
                  bn_params=None,
                  **kwargs):
-        super(Base3DStem, self).__init__(**kwargs)
+        super(Base2DStem, self).__init__(**kwargs)
 
         self.dim_in = dim_in
         self.num_filters = num_filters
@@ -24,11 +24,11 @@ class Base3DStem(Visualize3DModule):
 
         if downsampling:
             if downsampling_temporal:
-                self.stride = (2, 2, 2)
+                self.stride = [2, 2, 2]
             else:
-                self.stride = (1, 2, 2)
+                self.stride = [1, 2, 2]
         else:
-            self.stride = (1, 1, 1)
+            self.stride = [1, 1, 1]
 
         self.bn_params = bn_params or {}
 
@@ -37,9 +37,9 @@ class Base3DStem(Visualize3DModule):
     def _construct(self):
         self.a = nn.Conv3d(self.dim_in,
                            self.num_filters,
-                           kernel_size=self.kernel_size,
-                           stride=self.stride,
-                           padding=[self.kernel_size[0] // 2, self.kernel_size[1] // 2, self.kernel_size[2] // 2],
+                           kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
+                           stride=(1, self.stride[1], self.stride[2]),
+                           padding=[0, self.kernel_size[1] // 2, self.kernel_size[2] // 2],
                            bias=False)
         self.a_bn = nn.BatchNorm3d(self.num_filters, **self.bn_params)
         self.a_relu = nn.ReLU(inplace=True)

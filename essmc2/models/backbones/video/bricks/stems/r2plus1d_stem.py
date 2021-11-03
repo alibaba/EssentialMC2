@@ -22,9 +22,9 @@ class R2Plus1DStem(Base3DStem):
         self.a1 = nn.Conv3d(
             in_channels=self.dim_in,
             out_channels=mid_dim,
-            kernel_size=[1, self.kernel_size[1], self.kernel_size[2]],
-            stride=[1, self.stride[1], self.stride[2]],
-            padding=[0, self.kernel_size[1] // 2, self.kernel_size[2] // 2],
+            kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
+            stride=(1, self.stride[1], self.stride[2]),
+            padding=(0, self.kernel_size[1] // 2, self.kernel_size[2] // 2),
             bias=False
         )
         self.a1_bn = nn.BatchNorm3d(mid_dim, **self.bn_params)
@@ -33,9 +33,9 @@ class R2Plus1DStem(Base3DStem):
         self.a2 = nn.Conv3d(
             in_channels=mid_dim,
             out_channels=self.num_filters,
-            kernel_size=[self.kernel_size[0], 1, 1],
-            stride=[self.stride[0], 1, 1],
-            padding=[self.kernel_size[0] // 2, 0, 0],
+            kernel_size=(self.kernel_size[0], 1, 1),
+            stride=(self.stride[0], 1, 1),
+            padding=(self.kernel_size[0] // 2, 0, 0),
             bias=False
         )
         self.a2_bn = nn.BatchNorm3d(self.num_filters, **self.bn_params)

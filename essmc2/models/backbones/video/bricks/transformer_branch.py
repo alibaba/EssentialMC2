@@ -183,9 +183,9 @@ class Attention(nn.Module):
         return x
 
     def extra_repr(self) -> str:
-        return f"partial={self.partial}" + \
+        return f"partial={self.partial}, " + \
                "" if not self.partial \
-            else f", einops_from={self.einops_from}, einops_to={self.einops_to}, einops_dims={self.einops_dims}"
+            else f"einops_from={self.einops_from}, einops_to={self.einops_to}, einops_dims={self.einops_dims}"
 
 
 @BRICKS.register_class()

@@ -26,11 +26,11 @@ class CSNBranch(BaseBranch):
         self.bn_params = bn_params or {}
         if self.downsampling:
             if self.downsampling_temporal:
-                self.stride = [2, 2, 2]
+                self.stride = (2, 2, 2)
             else:
-                self.stride = [1, 2, 2]
+                self.stride = (1, 2, 2)
         else:
-            self.stride = [1, 1, 1]
+            self.stride = (1, 1, 1)
         super(CSNBranch, self).__init__(**kwargs)
 
     def _construct_simple_block(self):
@@ -40,8 +40,8 @@ class CSNBranch(BaseBranch):
         self.a = nn.Conv3d(
             in_channels=self.dim_in,
             out_channels=self.num_filters // self.expansion_ratio,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0,
             bias=False
         )
@@ -63,8 +63,8 @@ class CSNBranch(BaseBranch):
         self.c = nn.Conv3d(
             in_channels=self.num_filters // self.expansion_ratio,
             out_channels=self.num_filters,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0,
             bias=False
         )

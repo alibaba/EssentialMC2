@@ -28,11 +28,11 @@ class R2Plus1DBranch(BaseBranch):
         self.bn_params = bn_params or {}
         if self.downsampling:
             if self.downsampling_temporal:
-                self.stride = [2, 2, 2]
+                self.stride = (2, 2, 2)
             else:
-                self.stride = [1, 2, 2]
+                self.stride = (1, 2, 2)
         else:
-            self.stride = [1, 1, 1]
+            self.stride = (1, 1, 1)
         super(R2Plus1DBranch, self).__init__(**kwargs)
 
     def _construct_simple_block(self):
@@ -44,9 +44,9 @@ class R2Plus1DBranch(BaseBranch):
         self.a1 = nn.Conv3d(
             in_channels=self.dim_in,
             out_channels=mid_dim,
-            kernel_size=[1, self.kernel_size[1], self.kernel_size[2]],
-            stride=[1, self.stride[1], self.stride[2]],
-            padding=[0, self.kernel_size[1] // 2, self.kernel_size[2] // 2],
+            kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
+            stride=(1, self.stride[1], self.stride[2]),
+            padding=(0, self.kernel_size[1] // 2, self.kernel_size[2] // 2),
             bias=False
         )
         self.a1_bn = nn.BatchNorm3d(mid_dim, **self.bn_params)
@@ -55,9 +55,9 @@ class R2Plus1DBranch(BaseBranch):
         self.a2 = nn.Conv3d(
             in_channels=mid_dim,
             out_channels=self.num_filters,
-            kernel_size=[self.kernel_size[0], 1, 1],
-            stride=[self.stride[0], 1, 1],
-            padding=[self.kernel_size[0] // 2, 0, 0],
+            kernel_size=(self.kernel_size[0], 1, 1),
+            stride=(self.stride[0], 1, 1),
+            padding=(self.kernel_size[0] // 2, 0, 0),
             bias=False
         )
         self.a2_bn = nn.BatchNorm3d(self.num_filters, **self.bn_params)
@@ -72,9 +72,9 @@ class R2Plus1DBranch(BaseBranch):
         self.b1 = nn.Conv3d(
             in_channels=self.num_filters,
             out_channels=mid_dim,
-            kernel_size=[1, self.kernel_size[1], self.kernel_size[2]],
-            stride=1,
-            padding=[0, self.kernel_size[1] // 2, self.kernel_size[2] // 2],
+            kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
+            stride=(1, 1, 1),
+            padding=(0, self.kernel_size[1] // 2, self.kernel_size[2] // 2),
             bias=False
         )
         self.b1_bn = nn.BatchNorm3d(mid_dim, **self.bn_params)
@@ -83,9 +83,9 @@ class R2Plus1DBranch(BaseBranch):
         self.b2 = nn.Conv3d(
             in_channels=mid_dim,
             out_channels=self.num_filters,
-            kernel_size=[self.kernel_size[0], 1, 1],
-            stride=1,
-            padding=[self.kernel_size[0] // 2, 0, 0],
+            kernel_size=(self.kernel_size[0], 1, 1),
+            stride=(1, 1, 1),
+            padding=(self.kernel_size[0] // 2, 0, 0),
             bias=False
         )
         self.b2_bn = nn.BatchNorm3d(self.num_filters, **self.bn_params)
@@ -94,8 +94,8 @@ class R2Plus1DBranch(BaseBranch):
         self.a = nn.Conv3d(
             in_channels=self.dim_in,
             out_channels=self.num_filters // self.expansion_ratio,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0,
             bias=False
         )
@@ -105,9 +105,9 @@ class R2Plus1DBranch(BaseBranch):
         self.b1 = nn.Conv3d(
             in_channels=self.num_filters // self.expansion_ratio,
             out_channels=self.num_filters // self.expansion_ratio,
-            kernel_size=[1, self.kernel_size[1], self.kernel_size[2]],
-            stride=[1, self.stride[1], self.stride[2]],
-            padding=[0, self.kernel_size[1] // 2, self.kernel_size[2] // 2],
+            kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
+            stride=(1, self.stride[1], self.stride[2]),
+            padding=(0, self.kernel_size[1] // 2, self.kernel_size[2] // 2),
             bias=False
         )
         self.b1_bn = nn.BatchNorm3d(self.num_filters // self.expansion_ratio, **self.bn_params)
@@ -116,9 +116,9 @@ class R2Plus1DBranch(BaseBranch):
         self.b2 = nn.Conv3d(
             in_channels=self.num_filters // self.expansion_ratio,
             out_channels=self.num_filters // self.expansion_ratio,
-            kernel_size=[self.kernel_size[0], 1, 1],
-            stride=[self.stride[0], 1, 1],
-            padding=[self.kernel_size[0] // 2, 0, 0],
+            kernel_size=(self.kernel_size[0], 1, 1),
+            stride=(self.stride[0], 1, 1),
+            padding=(self.kernel_size[0] // 2, 0, 0),
             bias=False
         )
         self.b2_bn = nn.BatchNorm3d(self.num_filters // self.expansion_ratio, **self.bn_params)
@@ -127,8 +127,8 @@ class R2Plus1DBranch(BaseBranch):
         self.c = nn.Conv3d(
             in_channels=self.num_filters // self.expansion_ratio,
             out_channels=self.num_filters,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0,
             bias=False
         )

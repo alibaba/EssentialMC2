@@ -33,32 +33,32 @@ class NonLocal(Visualize3DModule):
         self.qconv = nn.Conv3d(
             self.dim_in,
             self.dim_middle,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0
         )
 
         self.kconv = nn.Conv3d(
             self.dim_in,
             self.dim_middle,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0
         )
 
         self.vconv = nn.Conv3d(
             self.dim_in,
             self.dim_middle,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0
         )
 
         self.out_conv = nn.Conv3d(
             self.dim_middle,
             self.num_filters,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0,
         )
 

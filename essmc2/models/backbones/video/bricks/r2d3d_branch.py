@@ -26,11 +26,11 @@ class R2D3DBranch(BaseBranch):
         self.bn_params = bn_params or {}
         if self.downsampling:
             if self.downsampling_temporal:
-                self.stride = [2, 2, 2]
+                self.stride = (2, 2, 2)
             else:
-                self.stride = [1, 2, 2]
+                self.stride = (1, 2, 2)
         else:
-            self.stride = [1, 1, 1]
+            self.stride = (1, 1, 1)
         super(R2D3DBranch, self).__init__(**kwargs)
 
     def _construct_simple_block(self):
@@ -49,7 +49,7 @@ class R2D3DBranch(BaseBranch):
             in_channels=self.num_filters,
             out_channels=self.num_filters,
             kernel_size=self.kernel_size,
-            stride=1,
+            stride=(1, 1, 1),
             padding=[self.kernel_size[0] // 2, self.kernel_size[1] // 2, self.kernel_size[2] // 2],
             bias=False
         )
@@ -59,8 +59,8 @@ class R2D3DBranch(BaseBranch):
         self.a = nn.Conv3d(
             in_channels=self.dim_in,
             out_channels=self.num_filters // self.expansion_ratio,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0,
             bias=False
         )
@@ -81,8 +81,8 @@ class R2D3DBranch(BaseBranch):
         self.c = nn.Conv3d(
             in_channels=self.num_filters // self.expansion_ratio,
             out_channels=self.num_filters,
-            kernel_size=1,
-            stride=1,
+            kernel_size=(1, 1, 1),
+            stride=(1, 1, 1),
             padding=0,
             bias=False
         )
