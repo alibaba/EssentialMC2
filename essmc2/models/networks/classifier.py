@@ -23,8 +23,8 @@ class Classifier(TrainModule):
 
         self.loss = torch.nn.CrossEntropyLoss()
 
-    def forward(self, img, train_mode=False, **kwargs):
-        return self.forward_train(img, **kwargs) if train_mode else self.forward_test(img, **kwargs)
+    def forward(self, img, **kwargs):
+        return self.forward_train(img, **kwargs) if self.training else self.forward_test(img, **kwargs)
 
     def forward_train(self, img, gt_label, **kwargs):
         ret = OrderedDict()

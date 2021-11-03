@@ -44,8 +44,8 @@ class MoSINet(TrainModule):
                 module.train(False)
         return self
 
-    def forward(self, video, train_mode=False, **kwargs):
-        return self.forward_train(video, **kwargs) if train_mode else self.forward_test(video, **kwargs)
+    def forward(self, video, **kwargs):
+        return self.forward_train(video, **kwargs) if self.training else self.forward_test(video, **kwargs)
 
     def forward_train(self, video, mosi_label, **kwargs):
         ret = OrderedDict()

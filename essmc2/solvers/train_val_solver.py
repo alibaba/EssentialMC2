@@ -28,7 +28,7 @@ class TrainValSolver(BaseSolver):
         for data in train_data_loader:
             self.before_iter()
             data_gpu = transfer_data_to_cuda(data)
-            self._iter_outputs = self.model(train_mode=True, **data_gpu)
+            self._iter_outputs = self.model(**data_gpu)
             self.after_iter()
         self.after_all_iter()
 
