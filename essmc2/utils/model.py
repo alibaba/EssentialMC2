@@ -46,6 +46,8 @@ def load_pretrained_dict(model: torch.nn.Module, state_dict: dict, logger=None):
 
     if 'state_dict' in state_dict:
         state_dict = state_dict['state_dict']
+    if 'model_state' in state_dict:
+        state_dict = state_dict['model_state']
 
     for p, r in revise_keys:
         state_dict = {re.sub(p, r, k): v for k, v in state_dict.items()}
