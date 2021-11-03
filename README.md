@@ -77,7 +77,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Acknowledgement
+### Acknowledgement
 
 EssentialMC2 is an open source project that is contributed by researchers from DAMO Academy. We appreciate users who
 give valuable feedbacks.
