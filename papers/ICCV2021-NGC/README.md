@@ -1,4 +1,5 @@
-# [NGC: A Unified Framework for Learning with Open-World Noisy Data](https://arxiv.org/abs/2108.11035)
+# NGC: A Unified Framework for Learning with Open-World Noisy Data
+[[Paper]](https://openaccess.thecvf.com/content/ICCV2021/papers/Wu_NGC_A_Unified_Framework_for_Learning_With_Open-World_Noisy_Data_ICCV_2021_paper.pdf).
 
 ## Introduction
 
@@ -48,3 +49,15 @@ python run.py --config config/cifar10_sym.py --work_dir work_cifar10_sym --resum
 ```
 python run.py --config config/cifar10_sym.py --work_dir work_cifar10_sym --seed 1001
 ```
+
+
+## Citing NGC
+If you find NGC useful for your research, please consider citing the paper as follows:
+```BibTeX
+@article{2021NGC,
+  title={NGC: A Unified Framework for Learning with Open-World Noisy Data},
+  author={ Wu, Zhi Fan  and  Wei, Tong  and  Jiang, Jianwen  and  Mao, Chaojie  and  Tang, Mingqian  and  Li, Yu Feng },
+  year={2021},
+}
+```
+
