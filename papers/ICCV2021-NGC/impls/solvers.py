@@ -57,11 +57,11 @@ class NGCSolver(BaseSolver):
             data["gt_label"] = gt_label
             data["clean_flag"] = clean_flag
             data_cuda = transfer_data_to_cuda(data)
-            self._iter_outputs = self.model(**data_cuda, train_mode=True, do_aug=self.do_aug, pseudo=True,
+            self._iter_outputs = self.model(**data_cuda, do_aug=self.do_aug, pseudo=True,
                                             temperature=self.temperature)
         else:
             data_cuda = transfer_data_to_cuda(data)
-            self._iter_outputs = self.model(**data_cuda, train_mode=True, do_aug=self.do_aug, pseudo=False)
+            self._iter_outputs = self.model(**data_cuda, do_aug=self.do_aug, pseudo=False)
 
         self.after_iter()
 
@@ -159,8 +159,7 @@ class NGCSolver(BaseSolver):
         for data in eval_dataloader:
             with torch.no_grad():
                 data_cuda = transfer_data_to_cuda(data)
-                o_logits, o_features = self.model(**data_cuda,
-                                                  train_mode=False, do_classify=True, do_extract_feature=True)
+                o_logits, o_features = self.model(**data_cuda, do_classify=True, do_extract_feature=True)
                 o_probs = softmax(o_logits, dim=1)
                 bt = o_features.size(0)
                 features[start_idx: start_idx + bt] = o_features.cpu()
