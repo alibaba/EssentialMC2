@@ -30,22 +30,23 @@ class Base3DBlock(nn.Module):
                  downsampling_temporal,
                  expansion_ratio,
                  branch_style="simple_block",
-                 bn_params=dict(),
-                 visual_cfg=dict(visualize=False, visualize_output_dir="")):
+                 branch_cfg=None,
+                 bn_params=None,
+                 visual_cfg=None):
         super(Base3DBlock, self).__init__()
 
         if dim_in != num_filters or downsampling:
             if downsampling:
                 if downsampling_temporal:
-                    _stride = [2, 2, 2]
+                    _stride = (2, 2, 2)
                 else:
-                    _stride = [1, 2, 2]
+                    _stride = (1, 2, 2)
             else:
-                _stride = [1, 1, 1]
+                _stride = (1, 1, 1)
             self.short_cut = nn.Conv3d(
                 dim_in,
                 num_filters,
-                kernel_size=1,
+                kernel_size=(1, 1, 1),
                 stride=_stride,
                 padding=0,
                 bias=False
@@ -61,7 +62,8 @@ class Base3DBlock(nn.Module):
                                                    expansion_ratio,
                                                    branch_style=branch_style,
                                                    bn_params=bn_params,
-                                                   **(visual_cfg or dict))
+                                                   **(branch_cfg or dict()),
+                                                   **(visual_cfg or dict()))
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
@@ -92,10 +94,11 @@ class Base3DResStage(nn.Module):
             downsampling_temporal,
             expansion_ratio,
             branch_style="simple_block",
-            bn_params=dict(),
+            branch_cfg=None,
+            bn_params=None,
             non_local=False,
-            non_local_cfg=dict(),
-            visual_cfg=dict(visualize=False, visualize_output_dir="")
+            non_local_cfg=None,
+            visual_cfg=None
     ):
         super(Base3DResStage, self).__init__()
         self.num_blocks = num_blocks
@@ -109,6 +112,7 @@ class Base3DResStage(nn.Module):
             downsampling_temporal,
             expansion_ratio,
             branch_style=branch_style,
+            branch_cfg=branch_cfg,
             bn_params=bn_params,
         )
         self.add_module("res_{}".format(1), res_block)
@@ -124,12 +128,16 @@ class Base3DResStage(nn.Module):
                 downsampling_temporal,
                 expansion_ratio,
                 branch_style=branch_style,
+                branch_cfg=branch_cfg,
                 bn_params=bn_params,
                 visual_cfg=visual_cfg
             )
             self.add_module("res_{}".format(i + 2), res_block)
         if non_local:
-            non_local = NonLocal(dim_in, num_filters, bn_params=bn_params, **non_local_cfg, **visual_cfg)
+            non_local = NonLocal(dim_in, num_filters,
+                                 bn_params=bn_params,
+                                 **(non_local_cfg or dict()),
+                                 **(visual_cfg or dict()))
             self.add_module("nonlocal", non_local)
 
     def forward(self, x):
@@ -165,17 +173,22 @@ class ResNet3D(nn.Module):
                  expansion_ratio=2,
                  stem_name="DownSampleStem",
                  branch_name="R2D3DBranch",
+                 branch_cfg=None,
                  non_local=(False, False, False, False, False),
-                 non_local_cfg=dict(),
-                 bn_params=dict(eps=1e-3, momentum=0.1),
-                 init_cfg=dict(),
-                 visual_cfg=dict(visualize=False, visualize_output_dir=""),
+                 non_local_cfg=None,
+                 bn_params=None,
+                 init_cfg=None,
+                 visual_cfg=None,
                  use_pretrain=False,
                  load_from="",
                  ):
         super(ResNet3D, self).__init__()
 
+        if bn_params is None:
+            bn_params = dict(eps=1e-3, momentum=0.1)
+
         # Build stem
+
         stem = dict(
             type="DownSampleStem" if stem_name is None else stem_name,
             dim_in=num_input_channels,
@@ -205,6 +218,7 @@ class ResNet3D(nn.Module):
                 downsampling_temporal[stage_id],
                 expansion_ratio,
                 branch_style=branch_style,
+                branch_cfg=branch_cfg,
                 bn_params=bn_params,
                 non_local=non_local[stage_id],
                 non_local_cfg=non_local_cfg,
@@ -213,7 +227,7 @@ class ResNet3D(nn.Module):
             setattr(self, f"conv{stage_id + 1}", conv)
 
         # perform initialization
-        init_cfg = init_cfg or {}
+        init_cfg = init_cfg or dict()
         if init_cfg.get("name") == "kaiming":
             _init_convnet_weights(self)
 
@@ -226,3 +240,66 @@ class ResNet3D(nn.Module):
         for i in range(2, 6):
             x = getattr(self, f"conv{i}")(x)
         return x
+
+
+@BACKBONES.register_function("ResNetR2D3D")
+def get_resnet_r2d3d(depth=18):
+    return BACKBONES.build(dict(
+        type="ResNet3D",
+        depth=depth,
+        bn_params=dict(eps=1e-5)
+    ))
+
+
+@BACKBONES.register_function("ResNet2Plus1d")
+def get_resnet3d_2plus1d(depth=10):
+    return BACKBONES.build(dict(
+        type="ResNet3D",
+        depth=depth,
+        num_filters=(64, 64, 128, 256, 512),
+        kernel_size=((3, 7, 7), (3, 3, 3), (3, 3, 3), (3, 3, 3), (3, 3, 3)),
+        downsampling=(True, False, True, True, True),
+        downsampling_temporal=(False, False, True, True, True),
+        expansion_ratio=2,
+        stem_name="R2Plus1DStem",
+        branch_name="R2Plus1DBranch",
+        bn_params=dict(eps=1e-5),
+    ))
+
+
+@BACKBONES.register_function("ResNet3D_CSN")
+def get_resnet3d_csn(depth=152):
+    return BACKBONES.build(dict(
+        type="ResNet3D",
+        depth=depth,
+        num_filters=(64, 256, 512, 1024, 2048),
+        kernel_size=((3, 7, 7), (3, 3, 3), (3, 3, 3), (3, 3, 3), (3, 3, 3)),
+        downsampling=(True, False, True, True, True),
+        downsampling_temporal=(False, False, True, True, True),
+        expansion_ratio=4,
+        stem_name="DownSampleStem",
+        branch_name="CSNBranch",
+        bn_params=dict(eps=1e-5, momentum=0.1),
+    ))
+
+
+@BACKBONES.register_function("ResNet3D_TAda")
+def get_resnet3d_TAda(depth=50):
+    return BACKBONES.build(dict(
+        type="ResNet3D",
+        depth=depth,
+        num_filters=(64, 256, 512, 1024, 2048),
+        kernel_size=((1, 7, 7), (1, 3, 3), (1, 3, 3), (1, 3, 3), (1, 3, 3)),
+        downsampling=(True, True, True, True, True),
+        downsampling_temporal=(False, False, False, False, False),
+        expansion_ratio=4,
+        stem_name="Base2DStem",
+        branch_name="TAdaConvBlockAvgPool",
+        branch_cfg=dict(
+            route_func_k=(3, 3),
+            route_func_r=4,
+            pool_k=(3, 1, 1)
+        ),
+        init_cfg=dict(name="kaiming"),
+        bn_params=dict(eps=1e-5)
+    ))

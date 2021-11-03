@@ -4,8 +4,8 @@ from ..utils.registry import Registry
 
 MODELS = Registry("MODELS")
 
-BACKBONES = MODELS
-NECKS = MODELS
-HEADS = MODELS
-BRICKS = MODELS
-STEMS = MODELS
+BACKBONES = Registry("BACKBONES")
+NECKS = Registry("NECKS")
+HEADS = Registry("HEADS")
+BRICKS = Registry("BRICKS")
+STEMS = BRICKS

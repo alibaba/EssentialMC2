@@ -158,7 +158,7 @@ def _init_convnet_weights(model, fc_init_std=0.01, zero_init_final_bn=True):
             every bottleneck.
     """
     for m in model.modules():
-        if hasattr(m, "no_init"):
+        if hasattr(m, "skip_init"):
             continue
         if isinstance(m, nn.Conv3d) and not hasattr(m, "linear"):
             """

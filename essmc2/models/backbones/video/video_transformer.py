@@ -232,3 +232,69 @@ class FactorizedTransformer(nn.Module):
         x = self.norm_out(x)
 
         return x[:, 0]
+
+
+@BACKBONES.register_function("ViVit")
+def get_transformer_vivit(image_size=112, num_frames=16):
+    return BACKBONES.build(dict(
+        type="Transformer",
+        num_frames=num_frames,
+        image_size=image_size,
+        num_features=768,
+        patch_size=16,
+        depth=12,
+        drop_path=0.1,
+        tubelet_size=2,
+        stem_name="TubeletEmbeddingStem",
+        branch_name="BaseTransformerLayer",
+        branch_cfg=dict(
+            num_heads=12,
+            attn_dropout=0.0,
+            ff_dropout=0.0,
+            mlp_mult=4
+        )
+    ))
+
+
+@BACKBONES.register_function("ViVit_Fac_Enc")
+def get_transformer_fac_enc(image_size=112, num_frames=16):
+    return BACKBONES.build(dict(
+        type="FactorizedTransformer",
+        num_frames=num_frames,
+        image_size=image_size,
+        num_features=768,
+        patch_size=16,
+        depth=12,
+        depth_temp=4,
+        drop_path=0.1,
+        tubelet_size=2,
+        stem_name="TubeletEmbeddingStem",
+        branch_name="BaseTransformerLayer",
+        branch_cfg=dict(
+            num_heads=12,
+            attn_dropout=0.0,
+            ff_dropout=0.0,
+            mlp_mult=4
+        )
+    ))
+
+
+@BACKBONES.register_function("Timesformer")
+def get_timesformer(image_size=112, num_frames=16):
+    return BACKBONES.build(dict(
+        type="Transformer",
+        num_frames=num_frames,
+        image_size=image_size,
+        num_features=768,
+        patch_size=16,
+        depth=12,
+        drop_path=0.0,
+        tubelet_size=1,
+        stem_name="PatchEmbedStem",
+        branch_name="TimesformerLayer",
+        branch_cfg=dict(
+            num_heads=12,
+            attn_dropout=0.1,
+            ff_dropout=0.1,
+        )
+    ))
