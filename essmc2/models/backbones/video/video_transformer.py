@@ -257,8 +257,8 @@ def get_transformer_vivit(image_size=112, num_frames=16):
 
 
 @BACKBONES.register_function("ViVit_Fac_Enc")
-def get_transformer_fac_enc(image_size=112, num_frames=16):
-    return BACKBONES.build(dict(
+def get_transformer_fac_enc(image_size=112, num_frames=16, **kwargs):
+    cfg = dict(
         type="FactorizedTransformer",
         num_frames=num_frames,
         image_size=image_size,
@@ -276,7 +276,10 @@ def get_transformer_fac_enc(image_size=112, num_frames=16):
             ff_dropout=0.0,
             mlp_mult=4
         )
-    ))
+    )
+    if kwargs:
+        cfg.update(kwargs)
+    return BACKBONES.build(cfg)
 
 
 @BACKBONES.register_function("Timesformer")

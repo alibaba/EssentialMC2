@@ -7,12 +7,11 @@ from .transforms.load_video import DecodeVideoToTensor
 from .transforms.mosi_generator import MoSIGenerator
 from .transforms.video import ColorJitterVideo
 from .solvers.MoSISolver import MoSISolver
-from .models import VideoClassifierHead, MoSIHead, VideoClassifier, MoSINet
+from .models import MoSIHead, MoSINet
 
 __all__ = [
     "BaseVideoDataset", "Hmdb51", "Ucf101",
     "DecodeVideoToTensor", "MoSIGenerator", "ColorJitterVideo",
     "MoSISolver",
     "MoSIHead", "MoSINet",
-    "VideoClassifierHead", "VideoClassifier"
 ]
