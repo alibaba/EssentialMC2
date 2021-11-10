@@ -114,8 +114,13 @@ class VideoClassifier(TrainModule):
         x = self.backbone(video)
         if self.neck is not None:
             x = self.neck(x)
+        probs = self.head(x)
 
-        probs = nn.functional.softmax(self.head(x), dim=1)
+        if type(probs) is tuple:
+            probs = tuple([nn.functional.softmax(t, dim=1) for t in probs])
+        else:
+            probs = nn.functional.softmax(probs, dim=1)
+
         if gt_label is None:
             return probs
         ret = OrderedDict()

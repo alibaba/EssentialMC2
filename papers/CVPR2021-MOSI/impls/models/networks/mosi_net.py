@@ -50,13 +50,16 @@ class MoSINet(TrainModule):
     def forward_train(self, video, mosi_label, **kwargs):
         ret = OrderedDict()
 
-        b, n, c, t, h, w = video.shape
-        video = video.reshape(b * n, c, t, h, w)
+        if len(video.shape) == 6:
+            b, n, c, t, h, w = video.shape
+            video = video.reshape(b * n, c, t, h, w)
 
         neck_features = self.neck(self.backbone(video))
 
         if self.label_mode == "joint":
             probs = self.head(neck_features)
+            if mosi_label is None:
+                return probs
             labels = mosi_label["move_joint"].reshape(probs.shape[0])
             loss = self.loss(probs, labels)
             ret["loss"] = loss
@@ -67,6 +70,8 @@ class MoSINet(TrainModule):
         else:
             probs_x = self.head_x(neck_features)
             probs_y = self.head_y(neck_features)
+            if mosi_label is None:
+                return probs_x, probs_y
             labels_x = mosi_label["move_x"].reshape(probs_x.shape[0])
             labels_y = mosi_label["move_y"].reshape(probs_y.shape[0])
             loss_x = self.loss(probs_x, labels_x)
@@ -89,8 +94,9 @@ class MoSINet(TrainModule):
         return ret
 
     def forward_test(self, video, mosi_label=None, **kwargs):
-        b, n, c, t, h, w = video.shape
-        video = video.reshape(b * n, c, t, h, w)
+        if len(video.shape) == 6:
+            b, n, c, t, h, w = video.shape
+            video = video.reshape(b * n, c, t, h, w)
 
         neck_features = self.neck(self.backbone(video))
         if self.label_mode == "joint":
