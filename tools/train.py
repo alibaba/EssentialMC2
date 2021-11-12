@@ -87,10 +87,10 @@ def get_data(cfg, logger):
             for p in eval_pipeline:
                 if p["type"] == "TensorToGPU":
                     p["device_id"] = rank
-    train_dataset = DATASETS.build(cfg.data['train']['dataset'], fs_cfg=cfg.get("file_systems").to_dict())
+    train_dataset = DATASETS.build(cfg.data['train']['dataset'], fs_cfg=cfg.get("file_systems"))
     logger.info(f"Built train dataset {train_dataset}")
     if "eval" in cfg.data:
-        eval_dataset = DATASETS.build(cfg.data["eval"]["dataset"], fs_cfg=cfg.get("file_systems").to_dict())
+        eval_dataset = DATASETS.build(cfg.data["eval"]["dataset"], fs_cfg=cfg.get("file_systems"))
         logger.info(f"Built eval dataset {eval_dataset}")
     else:
         eval_dataset = None

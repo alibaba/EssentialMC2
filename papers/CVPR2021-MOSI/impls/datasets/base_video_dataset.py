@@ -75,7 +75,7 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
 
     def __getitem__(self, index: int):
         # For each new worker, init file system now.
-        self.mp_init_fs()
+        self._mp_init_fs()
 
         actual_index = index // self.num_clips
         tmp = index - actual_index * self.num_clips

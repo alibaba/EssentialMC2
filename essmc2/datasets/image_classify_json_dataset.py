@@ -34,6 +34,9 @@ class ImageClassifyJsonDataset(BaseDataset):
         self._load_json()
 
     def _get(self, index: int):
+        # For each new worker, init file system now.
+        self._mp_init_fs()
+
         item = self.content_list[index]
         ret = {
             "meta": {
