@@ -42,18 +42,17 @@ _SECURE_KEYWORDS = [
 
 
 class ConfigDict(Dict):
-    """ Original Dict make default value if key not exists.
-    Here we raise Exception.
-    Finally, we can set value to non-exist key, by:
+    """ Class Dict will set default value {} if key not exists, which is not expected.
+    We can set value via non-exist key:
     >>> cfg = ConfigDict({})
     >>> cfg.key = 100
     >>> print(cfg.key)
     >>> 100
-    we can get value by key or key sequences, like:
+    We can get value by key or key sequences:
     >>> cfg.key = dict(a=dict(b=dict(c=100)))
     >>> print(cfg.key.a.b.c)
     >>> 100
-    we cannot set value by key sequences, like
+    We cannot set value by key sequences:
     >>> cfg.key.d.e = 100
     >>> KeyError: 'd'
     """
@@ -62,12 +61,7 @@ class ConfigDict(Dict):
         raise KeyError(name)
 
     def __getattr__(self, name):
-        try:
-            return super(ConfigDict, self).__getattr__(name)
-        except KeyError as e:
-            raise e
-        except Exception as e:
-            raise e
+        return super(ConfigDict, self).__getattr__(name)
 
 
 class Config(object):
@@ -134,25 +128,21 @@ class Config(object):
         return len(self._cfg_dict)
 
     def __getattr__(self, name):
-        value = self._cfg_dict.__getattr__(name)
-        if isinstance(value, ConfigDict):
-            value = value.to_dict()
-        return value
+        return self._cfg_dict.__getattr__(name)
 
     def __getitem__(self, name):
-        value = self._cfg_dict.__getitem__(name)
-        if isinstance(value, ConfigDict):
-            value = value.to_dict()
-        return value
+        return self._cfg_dict.__getitem__(name)
 
     def __setattr__(self, key, value):
-        if isinstance(value, dict):
-            value = ConfigDict(value)
-        self._cfg_dict.__setattr__(key, value)
+        self.__setitem__(key, value)
 
     def __setitem__(self, key, value):
         if isinstance(value, dict):
             value = ConfigDict(value)
+        elif isinstance(value, (list, tuple)):
+            value = type(value)(
+                ConfigDict(item) if isinstance(item, dict) else
+                item for item in value)
         self._cfg_dict.__setitem__(key, value)
 
     def __iter__(self):
@@ -170,9 +160,20 @@ class Config(object):
             default (Any): Default value if name missed.
 
         Returns:
-            value (Any, None):
+            value (Any, None): Will only return primitive type dict, not ConfigDict
         """
-        return default if name not in self._cfg_dict else self.__getitem__(name)
+        if name not in self._cfg_dict:
+            return default
+        else:
+            value = self._cfg_dict.__getitem__(name)
+            if type(value) is ConfigDict:
+                value = value.to_dict()
+            elif isinstance(value, (list, tuple)):
+                value = type(value)(
+                    item.to_dict() if isinstance(item, ConfigDict) else
+                    item for item in value)
+
+            return value
 
     def set_secure(self, flag):
         """ Set secure flag, if true, value whose key name in self._secure_keys will be replaced by ***
