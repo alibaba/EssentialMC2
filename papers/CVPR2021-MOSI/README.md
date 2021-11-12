@@ -23,10 +23,10 @@ cd $REPO_ROOT_DIR
 # We recommend run pretrain with 16 V100 cards, and fintune with 8 V100 cards.
 # Pretrain ResNet3D-R2D3DBranch on Hmdb51 dataset
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python -m torch.distributed.launch --nproc_per_node=8 tools/train.py \
-    --ext_module papers/CVPR2021-MOSI/impls --config config/MoSI_r2d3d_hmdb.py --dist_launcher pytorch
+    --ext_module papers/CVPR2021-MOSI/impls --config papers/CVPR2021-MOSI/config/MoSI_r2d3d_hmdb.py --dist_launcher pytorch
 # Finetune ResNet3D-R2D3DBranch on Hmdb51 dataset
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python -m torch.distributed.launch --nproc_per_node=8 tools/train.py \
-    --ext_module papers/CVPR2021-MOSI/impls --config config/Finetunue_r2d3d_hmdb.py --dist_launcher pytorch
+    --ext_module papers/CVPR2021-MOSI/impls --config papers/CVPR2021-MOSI/config/Finetunue_r2d3d_hmdb.py --dist_launcher pytorch
 ```
 
 ## Citing MoSI
