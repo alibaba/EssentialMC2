@@ -3,11 +3,17 @@
 import random
 
 import numpy as np
-import torchvision.transforms._functional_video as F
-import torchvision.transforms._transforms_video as transforms_videos
+import torchvision.transforms.functional as functional
+import torchvision.transforms.transforms as transforms
+from packaging import version
+from torchvision.transforms.functional import InterpolationMode
+from torchvision.version import __version__ as tv_version
 
 from .registry import TRANSFORMS
 from .utils import is_tensor
+
+# torchvision.transforms._transforms_video is deprecated after torchvision 0.10.0, use transforms instead
+use_video_transforms = version.parse(tv_version) < version.parse("0.10.0")
 
 BACKEND_TORCHVISION = "torchvision"
 BACKENDS = (BACKEND_TORCHVISION,)
@@ -31,7 +37,11 @@ class RandomResizedCropVideo(VideoTransform):
         assert self.backend in BACKENDS
         self.interpolation = interpolation
 
-        self.callable = transforms_videos.RandomResizedCropVideo(size, scale, ratio, self.interpolation)
+        if use_video_transforms:
+            from torchvision.transforms._transforms_video import RandomResizedCropVideo as RandomResizedCropVideoOp
+            self.callable = RandomResizedCropVideoOp(size, scale, ratio, self.interpolation)
+        else:
+            self.callable = transforms.RandomResizedCrop(size, scale, ratio, InterpolationMode(self.interpolation))
 
     def __call__(self, item):
         self.check_video_type(item[self.input_key])
@@ -45,7 +55,12 @@ class CenterCropVideo(VideoTransform):
         super(CenterCropVideo, self).__init__(**kwargs)
         assert self.backend in BACKENDS
         self.size = size
-        self.callable = transforms_videos.CenterCropVideo(size)
+
+        if use_video_transforms:
+            from torchvision.transforms._transforms_video import CenterCropVideo as CenterCropVideoOp
+            self.callable = CenterCropVideoOp(size)
+        else:
+            self.callable = transforms.CenterCrop(size)
 
     def __call__(self, item):
         self.check_video_type(item[self.input_key])
@@ -58,7 +73,13 @@ class RandomHorizontalFlipVideo(VideoTransform):
     def __init__(self, p=0.5, **kwargs):
         super(RandomHorizontalFlipVideo, self).__init__(**kwargs)
         assert self.backend in BACKENDS
-        self.callable = transforms_videos.RandomHorizontalFlipVideo(p)
+
+        if use_video_transforms:
+            from torchvision.transforms._transforms_video import \
+                RandomHorizontalFlipVideo as RandomHorizontalFlipVideoOp
+            self.callable = RandomHorizontalFlipVideoOp(p)
+        else:
+            self.callable = transforms.RandomHorizontalFlip(p)
 
     def __call__(self, item):
         self.check_video_type(item[self.input_key])
@@ -73,7 +94,12 @@ class NormalizeVideo(VideoTransform):
         assert self.backend in BACKENDS
         self.mean = np.array(mean, dtype=np.float32)
         self.std = np.array(std, dtype=np.float32)
-        self.callable = transforms_videos.NormalizeVideo(self.mean, self.std)
+
+        if use_video_transforms:
+            from torchvision.transforms._transforms_video import NormalizeVideo as NormalizeVideoOp
+            self.callable = NormalizeVideoOp(self.mean, self.std)
+        else:
+            self.callable = transforms.Normalize(self.mean, self.std)
 
     def __call__(self, item):
         item[self.output_key] = self.callable(item[self.input_key])
@@ -85,7 +111,12 @@ class VideoToTensor(VideoTransform):
     def __init__(self, **kwargs):
         super(VideoToTensor, self).__init__(**kwargs)
         assert self.backend in BACKENDS
-        self.callable = transforms_videos.ToTensorVideo()
+
+        if use_video_transforms:
+            from torchvision.transforms._transforms_video import ToTensorVideo
+            self.callable = ToTensorVideo()
+        else:
+            self.callable = transforms.ToTensor()
 
     def __call__(self, item):
         item[self.output_key] = self.callable(item[self.input_key])
@@ -139,7 +170,12 @@ class AutoResizedCropVideo(VideoTransform):
             x0 = video_width - crop_size
             y0 = video_height - crop_size
 
-        return F.resized_crop(clip, y0, x0, crop_size, crop_size, self.size, self.interpolation_mode)
+        if use_video_transforms:
+            from torchvision.transforms._functional_video import resized_crop
+            return resized_crop(clip, y0, x0, crop_size, crop_size, self.size, self.interpolation_mode)
+        else:
+            return functional.resized_crop(clip, y0, x0, crop_size, crop_size, self.size,
+                                           InterpolationMode(self.interpolation_mode))
 
     def __call__(self, item):
         self.check_video_type(item[self.input_key])
