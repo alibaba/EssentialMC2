@@ -23,8 +23,6 @@ from importlib import import_module
 from addict import Dict
 from yapf.yapflib.yapf_api import FormatCode
 
-cfg = None
-
 _SECURE_KEYWORDS = [
     "privateKey",
     "access-key",
@@ -130,16 +128,22 @@ class Config(object):
         raise Exception(f"Unsupported filename {filename}")
 
     def __repr__(self):
-        return f"Config from {self._source}: \n{self.dumps()}"
+        return (f"Config from {self._source}: \n" if self._source is not None else "") + f"{self.dumps()}"
 
     def __len__(self):
         return len(self._cfg_dict)
 
     def __getattr__(self, name):
-        return self._cfg_dict.__getattr__(name)
+        value = self._cfg_dict.__getattr__(name)
+        if isinstance(value, ConfigDict):
+            value = value.to_dict()
+        return value
 
     def __getitem__(self, name):
-        return self._cfg_dict.__getitem__(name)
+        value = self._cfg_dict.__getitem__(name)
+        if isinstance(value, ConfigDict):
+            value = value.to_dict()
+        return value
 
     def __setattr__(self, key, value):
         if isinstance(value, dict):
@@ -168,7 +172,7 @@ class Config(object):
         Returns:
             value (Any, None):
         """
-        return default if name not in self._cfg_dict else self._cfg_dict[name]
+        return default if name not in self._cfg_dict else self.__getitem__(name)
 
     def set_secure(self, flag):
         """ Set secure flag, if true, value whose key name in self._secure_keys will be replaced by ***

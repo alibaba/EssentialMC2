@@ -29,7 +29,7 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}: mode={self.mode}, len={len(self)}"
 
-    def mp_init_fs(self):
+    def _mp_init_fs(self):
         """ In multiprocess context, file system should be inited in each worker.
         It should be invoked before invoking io op in transform pipeline.
         """
