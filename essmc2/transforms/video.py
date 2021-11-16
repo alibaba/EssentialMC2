@@ -6,16 +6,14 @@ import numpy as np
 import torchvision.transforms.functional as functional
 import torchvision.transforms.transforms as transforms
 from packaging import version
-from torchvision.transforms.functional import InterpolationMode
 from torchvision.version import __version__ as tv_version
 
 from .registry import TRANSFORMS
-from .utils import is_tensor
+from .utils import is_tensor, BACKEND_TORCHVISION, INTERPOLATION_STYLE
 
-# torchvision.transforms._transforms_video is deprecated after torchvision 0.10.0, use transforms instead
+# torchvision.transforms._transforms_video is deprecated since torchvision 0.10.0, use transforms instead
 use_video_transforms = version.parse(tv_version) < version.parse("0.10.0")
 
-BACKEND_TORCHVISION = "torchvision"
 BACKENDS = (BACKEND_TORCHVISION,)
 
 
@@ -41,7 +39,7 @@ class RandomResizedCropVideo(VideoTransform):
             from torchvision.transforms._transforms_video import RandomResizedCropVideo as RandomResizedCropVideoOp
             self.callable = RandomResizedCropVideoOp(size, scale, ratio, self.interpolation)
         else:
-            self.callable = transforms.RandomResizedCrop(size, scale, ratio, InterpolationMode(self.interpolation))
+            self.callable = transforms.RandomResizedCrop(size, scale, ratio, INTERPOLATION_STYLE[self.interpolation])
 
     def __call__(self, item):
         self.check_video_type(item[self.input_key])
@@ -175,7 +173,7 @@ class AutoResizedCropVideo(VideoTransform):
             return resized_crop(clip, y0, x0, crop_size, crop_size, self.size, self.interpolation_mode)
         else:
             return functional.resized_crop(clip, y0, x0, crop_size, crop_size, self.size,
-                                           InterpolationMode(self.interpolation_mode))
+                                           INTERPOLATION_STYLE[self.interpolation_mode])
 
     def __call__(self, item):
         self.check_video_type(item[self.input_key])

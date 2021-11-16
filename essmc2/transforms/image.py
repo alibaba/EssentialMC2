@@ -1,22 +1,16 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-import cv2
 import numpy as np
 import opencv_transforms.transforms as cv2_transforms
 import torch
 import torchvision.transforms as transforms
-from PIL import Image
-from torchvision.version import __version__ as tv_version
-from packaging.version import parse as parse_version
 
 from .registry import TRANSFORMS
 from .utils import is_pil_image, INPUT_PIL_TYPE_WARNING, \
-    is_cv2_image, INPUT_CV2_TYPE_WARNING, is_tensor, INPUT_TENSOR_TYPE_WARNING
+    is_cv2_image, INPUT_CV2_TYPE_WARNING, is_tensor, INPUT_TENSOR_TYPE_WARNING, \
+    BACKEND_TORCHVISION, BACKEND_PILLOW, BACKEND_CV2, TORCHVISION_CAPABILITY, \
+    INTERPOLATION_STYLE, INTERPOLATION_STYLE_CV2
 
-BACKEND_PILLOW = "pillow"
-BACKEND_CV2 = "cv2"
-BACKEND_TORCHVISION = "torchvision"
-TORCHVISION_CAPABILITY = parse_version(tv_version) >= parse_version('0.8.0')
 if TORCHVISION_CAPABILITY:
     BACKENDS = (BACKEND_PILLOW, BACKEND_CV2, BACKEND_TORCHVISION)
 else:
@@ -60,18 +54,6 @@ class RandomCrop(ImageTransform):
         return item
 
 
-interpolation_style = {
-    "bilinear": Image.BILINEAR,
-    "nearest": Image.NEAREST,
-    "bicubic": Image.BICUBIC,
-}
-interpolation_style_cv2 = {
-    "bilinear": cv2.INTER_LINEAR,
-    "nearest": cv2.INTER_NEAREST,
-    "bicubic": cv2.INTER_CUBIC,
-}
-
-
 @TRANSFORMS.register_class()
 class RandomResizedCrop(ImageTransform):
     def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.), interpolation='bilinear', **kwargs):
@@ -79,14 +61,12 @@ class RandomResizedCrop(ImageTransform):
         assert self.backend in BACKENDS
         self.interpolation = interpolation
         if self.backend in (BACKEND_PILLOW, BACKEND_TORCHVISION):
-            assert interpolation in interpolation_style
+            assert interpolation in INTERPOLATION_STYLE
         else:
-            assert interpolation in interpolation_style_cv2
-        self.callable = transforms.RandomResizedCrop(size, scale, ratio, interpolation_style[interpolation]) \
-            if self.backend in (BACKEND_PILLOW, BACKEND_TORCHVISION) else cv2_transforms.RandomResizedCrop(size, scale,
-                                                                                                           ratio,
-                                                                                                           interpolation_style_cv2[
-                                                                                                               interpolation])
+            assert interpolation in INTERPOLATION_STYLE_CV2
+        self.callable = transforms.RandomResizedCrop(size, scale, ratio, INTERPOLATION_STYLE[interpolation]) \
+            if self.backend in (BACKEND_PILLOW, BACKEND_TORCHVISION) \
+            else cv2_transforms.RandomResizedCrop(size, scale, ratio, INTERPOLATION_STYLE_CV2[interpolation])
 
     def __call__(self, item):
         self.check_image_type(item[self.input_key])
@@ -102,13 +82,12 @@ class Resize(ImageTransform):
         self.size = size
         self.interpolation = interpolation
         if self.backend in (BACKEND_PILLOW, BACKEND_TORCHVISION):
-            assert interpolation in interpolation_style
+            assert interpolation in INTERPOLATION_STYLE
         else:
-            assert interpolation in interpolation_style_cv2
-        self.callable = transforms.Resize(size, interpolation_style[interpolation]) \
-            if self.backend in (BACKEND_PILLOW, BACKEND_TORCHVISION) else cv2_transforms.Resize(size,
-                                                                                                interpolation_style_cv2[
-                                                                                                    interpolation])
+            assert interpolation in INTERPOLATION_STYLE_CV2
+        self.callable = transforms.Resize(size, INTERPOLATION_STYLE[interpolation]) \
+            if self.backend in (BACKEND_PILLOW, BACKEND_TORCHVISION) \
+            else cv2_transforms.Resize(size, INTERPOLATION_STYLE_CV2[interpolation])
 
     def __call__(self, item):
         self.check_image_type(item[self.input_key])
