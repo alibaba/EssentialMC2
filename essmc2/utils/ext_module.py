@@ -13,7 +13,8 @@ def _import_ext_module_dir(module_dir):
     module_name = osp.basename(module_abs_path)
     sys.path.insert(0, module_dir)
     importlib.import_module(module_name)
-    sys.path.pop(0)
+    # Keep module_dir in sys.path, multiprocessing context will utilize this variable to avoid 'import error'
+    # sys.path.pop(0)
 
 
 def _import_ext_module_py(py_path):
@@ -22,7 +23,8 @@ def _import_ext_module_py(py_path):
     module_name = osp.basename(module_abs_path).replace(".py", "")
     sys.path.insert(0, module_dir)
     importlib.import_module(module_name)
-    sys.path.pop(0)
+    # Keep module_dir in sys.path, multiprocessing context will utilize this variable to avoid 'import error'
+    # sys.path.pop(0)
 
 
 def import_ext_module(module_dir):
