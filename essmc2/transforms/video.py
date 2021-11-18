@@ -180,3 +180,30 @@ class AutoResizedCropVideo(VideoTransform):
         crop_mode = item["meta"].get("crop_mode") or "cc"
         item[self.output_key] = self.get_crop(item[self.input_key], crop_mode)
         return item
+
+
+@TRANSFORMS.register_class()
+class ResizeVideo(VideoTransform):
+    def __init__(self,
+                 size,
+                 interpolation_mode='bilinear',
+                 **kwargs):
+        super(ResizeVideo, self).__init__(**kwargs)
+        if isinstance(size, tuple):
+            assert len(size) == 2, "size should be tuple (height, width)"
+            self.size = size
+        else:
+            self.size = (size, size)
+        self.interpolation_mode = interpolation_mode
+
+    def resize(self, clip):
+        if use_video_transforms:
+            from torchvision.transforms._functional_video import resize
+            return resize(clip, self.size, self.interpolation_mode)
+        else:
+            return functional.resize(clip, self.size, INTERPOLATION_STYLE[self.interpolation_mode])
+
+    def __call__(self, item):
+        self.check_video_type(item[self.input_key])
+        item[self.output_key] = self.resize(item[self.input_key])
+        return item

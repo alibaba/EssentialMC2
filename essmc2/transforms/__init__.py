@@ -7,7 +7,8 @@ from .io import LoadPILImageFromFile, LoadCvImageFromFile
 from .registry import TRANSFORMS, build_pipeline
 from .tensor import ToTensor, Select
 from .video import VideoTransform, RandomResizedCropVideo, CenterCropVideo, \
-    RandomHorizontalFlipVideo, NormalizeVideo, VideoToTensor, AutoResizedCropVideo
+    RandomHorizontalFlipVideo, NormalizeVideo, VideoToTensor, AutoResizedCropVideo, \
+    ResizeVideo
 
 __all__ = [
     'TRANSFORMS', 'build_pipeline',
@@ -18,5 +19,5 @@ __all__ = [
     'Identity',
     'compose',
     'VideoTransform', 'RandomResizedCropVideo', 'CenterCropVideo',
-    'RandomHorizontalFlipVideo', 'NormalizeVideo', 'VideoToTensor', 'AutoResizedCropVideo'
+    'RandomHorizontalFlipVideo', 'NormalizeVideo', 'VideoToTensor', 'AutoResizedCropVideo', 'ResizeVideo'
 ]
