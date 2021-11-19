@@ -35,6 +35,14 @@ class RandomResizedCropVideo(VideoTransform):
         assert self.backend in BACKENDS
         self.interpolation = interpolation
 
+        if isinstance(size, (tuple, list)):
+            assert len(size) == 2
+            size = tuple(size)
+        elif isinstance(size, int):
+            size = (size, size)
+        else:
+            raise ValueError(f"Unexpected type {type(size)}, expected int or tuple or list")
+
         if use_video_transforms:
             from torchvision.transforms._transforms_video import RandomResizedCropVideo as RandomResizedCropVideoOp
             self.callable = RandomResizedCropVideoOp(size, scale, ratio, self.interpolation)
@@ -129,11 +137,14 @@ class AutoResizedCropVideo(VideoTransform):
                  interpolation_mode='bilinear',
                  **kwargs):
         super(AutoResizedCropVideo, self).__init__(**kwargs)
-        if isinstance(size, tuple):
-            assert len(size) == 2, "size should be tuple (height, width)"
-            self.size = size
+        if isinstance(size, (tuple, list)):
+            assert len(size) == 2
+            size = tuple(size)
+        elif isinstance(size, int):
+            size = (size, size)
         else:
-            self.size = (size, size)
+            raise ValueError(f"Unexpected type {type(size)}, expected int or tuple or list")
+        self.size = size
         self.scale = scale
         self.interpolation_mode = interpolation_mode
 
@@ -189,11 +200,13 @@ class ResizeVideo(VideoTransform):
                  interpolation_mode='bilinear',
                  **kwargs):
         super(ResizeVideo, self).__init__(**kwargs)
-        if isinstance(size, tuple):
-            assert len(size) == 2, "size should be tuple (height, width)"
-            self.size = size
+        if isinstance(size, (tuple, list)):
+            assert len(size) == 2
+            size = tuple(size)
+        elif isinstance(size, int):
+            size = (size, size)
         else:
-            self.size = (size, size)
+            raise ValueError(f"Unexpected type {type(size)}, expected int or tuple or list")
         self.interpolation_mode = interpolation_mode
 
     def resize(self, clip):
