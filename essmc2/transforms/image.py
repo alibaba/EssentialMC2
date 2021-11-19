@@ -35,8 +35,23 @@ class ImageTransform(object):
 
 @TRANSFORMS.register_class()
 class RandomCrop(ImageTransform):
+    """ Crop a random portion of image.
+    If the image is torch Tensor, it is expected to have [..., H, W] shape.
+
+    Args:
+        size (sequence or int): Desired output size.
+            If size is a sequence like (h, w), the output size will be matched to this.
+            If size is an int, the output size will be matched to (size, size).
+        padding (sequence or int): Optional padding on each border of the image. Default is None.
+        pad_if_needed (bool): It will pad the image if smaller than the desired size to avoid raising an exception.
+        fill (number or str or tuple): Pixel fill value for constant fill. Default is 0.
+        padding_mode (str): Type of padding. Should be: constant, edge, reflect or symmetric.
+            Default is constant.
+    """
+
     def __init__(self, size,
                  padding=None, pad_if_needed=False, fill=0, padding_mode='constant', **kwargs):
+
         super(RandomCrop, self).__init__(**kwargs)
         assert self.backend in BACKENDS
         if self.backend in (BACKEND_PILLOW, BACKEND_TORCHVISION):
@@ -56,6 +71,21 @@ class RandomCrop(ImageTransform):
 
 @TRANSFORMS.register_class()
 class RandomResizedCrop(ImageTransform):
+    """Crop a random portion of image and resize it to a given size.
+
+    If the image is torch Tensor, it is expected to have [..., H, W] shape.
+
+    Args:
+    size (int or sequence): Desired output size.
+        If size is a sequence like (h, w), the output size will be matched to this.
+        If size is an int, the output size will be matched to (size, size).
+    scale (tuple of float): Specifies the lower and upper bounds for the random area of the crop,
+        before resizing. The scale is defined with respect to the area of the original image.
+    ratio (tuple of float): lower and upper bounds for the random aspect ratio of the crop, before
+        resizing.
+    interpolation (str): Desired interpolation string, 'bilinear', 'nearest', 'bicubic' are supported.
+    """
+
     def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.), interpolation='bilinear', **kwargs):
         super(RandomResizedCrop, self).__init__(**kwargs)
         assert self.backend in BACKENDS
@@ -76,6 +106,16 @@ class RandomResizedCrop(ImageTransform):
 
 @TRANSFORMS.register_class()
 class Resize(ImageTransform):
+    """Resize image to a given size.
+
+    If the image is torch Tensor, it is expected to have [..., H, W] shape.
+
+    Args:
+        size (int or sequence): Desired output size.
+            If size is a sequence like (h, w), the output size will be matched to this.
+            If size is an int, the smaller edge of the image will be matched to this number maintaining the aspect ratio.
+        interpolation (str): Desired interpolation string, 'bilinear', 'nearest', 'bicubic' are supported.
+    """
     def __init__(self, size, interpolation='bilinear', **kwargs):
         super(Resize, self).__init__(**kwargs)
         assert self.backend in BACKENDS
@@ -97,6 +137,15 @@ class Resize(ImageTransform):
 
 @TRANSFORMS.register_class()
 class CenterCrop(ImageTransform):
+    """ Crops the given image at the center.
+
+    If the image is torch Tensor, it is expected to have [..., H, W] shape.
+
+    Args:
+        size (sequence or int): Desired output size.
+            If size is a sequence like (h, w), the output size will be matched to this.
+            If size is an int, the output size will be matched to (size, size).
+    """
     def __init__(self, size, **kwargs):
         super(CenterCrop, self).__init__(**kwargs)
         assert self.backend in BACKENDS
@@ -112,6 +161,13 @@ class CenterCrop(ImageTransform):
 
 @TRANSFORMS.register_class()
 class RandomHorizontalFlip(ImageTransform):
+    """ Horizontally flip the given image randomly with a given probability.
+
+    If the image is torch Tensor, it is expected to have [..., H, W] shape.
+
+    Args:
+        p (float): probability of the image being flipped. Default value is 0.5
+    """
     def __init__(self, p=0.5, **kwargs):
         super(RandomHorizontalFlip, self).__init__(**kwargs)
         assert self.backend in BACKENDS
@@ -126,6 +182,13 @@ class RandomHorizontalFlip(ImageTransform):
 
 @TRANSFORMS.register_class()
 class Normalize(ImageTransform):
+    """ Normalize a tensor image with mean and standard deviation.
+    This transform only support tensor image.
+
+    Args:
+        mean (sequence): Sequence of means for each channel.
+        std (sequence): Sequence of standard deviations for each channel.
+    """
     def __init__(self, mean, std, **kwargs):
         super(Normalize, self).__init__(**kwargs)
         assert self.backend in BACKENDS
@@ -142,6 +205,9 @@ class Normalize(ImageTransform):
 
 @TRANSFORMS.register_class()
 class ImageToTensor(ImageTransform):
+    """ Convert a ``PIL Image`` or ``numpy.ndarray`` or uint8 type tensor to a float32 tensor,
+    and scale output to [0.0, 1.0].
+    """
     def __init__(self, **kwargs):
         super(ImageToTensor, self).__init__(**kwargs)
         assert self.backend in BACKENDS
