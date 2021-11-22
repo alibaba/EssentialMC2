@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 from essmc2.models.networks.train_module import TrainModule
-from essmc2.models.registry import MODELS, BACKBONES, NECKS, HEADS
+from essmc2.models.registry import MODELS, BACKBONES, NECKS, HEADS, LOSSES
 from essmc2.utils.logger import get_logger
 from essmc2.utils.metric import accuracy
 from essmc2.utils.model import load_pretrained
@@ -14,17 +14,23 @@ from essmc2.utils.model import load_pretrained
 
 @MODELS.register_class()
 class Classifier(TrainModule):
-    def __init__(self, backbone, neck, head, topk=(1,)):
+    def __init__(self,
+                 backbone,
+                 neck,
+                 head,
+                 loss=None,
+                 topk=(1,)):
         super().__init__()
         self.backbone = BACKBONES.build(backbone)
         self.neck = NECKS.build(neck)
         self.head = HEADS.build(head)
+
+        self.loss = LOSSES.build(loss or dict(type='CrossEntropy'))
+
         if isinstance(topk, int):
             self.topk = (topk,)
         else:
             self.topk = topk
-
-        self.loss = torch.nn.CrossEntropyLoss()
 
     def forward(self, img, **kwargs):
         return self.forward_train(img, **kwargs) if self.training else self.forward_test(img, **kwargs)
@@ -56,6 +62,7 @@ class VideoClassifier(TrainModule):
                  backbone,
                  neck,
                  head,
+                 loss=None,
                  freeze_bn=False,
                  topk=(1,),
                  use_pretrain=False,
@@ -67,6 +74,9 @@ class VideoClassifier(TrainModule):
         else:
             self.neck = None
         self.head = HEADS.build(head)
+
+        self.loss = LOSSES.build(loss or dict(type='CrossEntropy'))
+
         self.freeze_bn = freeze_bn
 
         if isinstance(topk, int):

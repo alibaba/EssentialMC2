@@ -9,3 +9,4 @@ NECKS = Registry("NECKS")
 HEADS = Registry("HEADS")
 BRICKS = Registry("BRICKS")
 STEMS = BRICKS
+LOSSES = Registry("LOSSES")

@@ -5,7 +5,7 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 
-from essmc2.models import TrainModule, MODELS, BACKBONES, NECKS, HEADS
+from essmc2.models import TrainModule, MODELS, BACKBONES, NECKS, HEADS, LOSSES
 from essmc2.utils.metric import accuracy
 
 
@@ -15,6 +15,7 @@ class MoSINet(TrainModule):
                  backbone,
                  neck,
                  head,
+                 loss=None,
                  label_mode='joint',
                  freeze_bn=False,
                  topk=(1,)):
@@ -34,7 +35,7 @@ class MoSINet(TrainModule):
         else:
             self.topk = topk
 
-        self.loss = torch.nn.CrossEntropyLoss()
+        self.loss = LOSSES.build(loss or dict(type="CrossEntropy"))
 
     def train(self, mode=True):
         self.training = mode
