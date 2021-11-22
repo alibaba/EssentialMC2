@@ -3,6 +3,8 @@
 import logging
 import os
 import os.path as osp
+import random
+import datetime
 import tempfile
 
 import oss2
@@ -45,7 +47,8 @@ class AliyunOssFs(BaseFs):
 
         key = path[len(self.prefix):]
         basename = osp.basename(path)
-        tmp_file = osp.join(tempfile.gettempdir(), basename)
+        randname = '{0:%Y%m%d%H%M%S%f}'.format(datetime.datetime.now())+''.join([str(random.randint(1,10)) for i in range(5)])
+        tmp_file = osp.join(tempfile.gettempdir(), randname + '_' + basename)
         retry = 0
         while retry < self.retry_times:
             try:
