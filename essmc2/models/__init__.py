@@ -4,4 +4,5 @@ from .backbones import *
 from .necks import *
 from .heads import *
 from .networks import *
-from .registry import MODELS, BACKBONES, NECKS, HEADS, BRICKS, STEMS
+from .losses import *
+from .registry import MODELS, BACKBONES, NECKS, HEADS, BRICKS, STEMS, LOSSES
