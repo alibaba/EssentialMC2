@@ -218,7 +218,7 @@ def main():
         if not osp.exists(work_dir) and rank == 0:
             os.makedirs(work_dir, exist_ok=True)
     else:
-        local_work_dir = osp.join("./", args.work_dir, config_name)
+        local_work_dir = osp.join("./", osp.basename(args.work_dir), config_name)
         os.makedirs(local_work_dir, exist_ok=True)
         work_fs_client.add_target_local_map(work_dir, local_work_dir)
 
