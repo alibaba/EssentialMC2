@@ -3,6 +3,8 @@
 from .local_fs import LocalFs
 from .registry import FILE_SYSTEMS
 
+from ..typing import check_dict_of_str_dict
+
 
 class FS(object):
     """ File system, module single instance. Should only be inited once.
@@ -21,13 +23,20 @@ class FS(object):
             4. other fs backend...
 
         Args:
-            cfg (list, dict, optional): list of file system configs to be initialized
+            cfg (list, dict, optional):
+                list: list of file system configs to be initialized
+                dict: a dict contains file system configs as values or a file system config dict
+                optional: Will only use default LocalFs
         """
         if FS._inited:
             return
         fs_cfg_list = cfg or []
         if isinstance(fs_cfg_list, dict):
-            fs_cfg_list = [fs_cfg_list]
+            if check_dict_of_str_dict(fs_cfg_list, contains_type=True):
+                fs_cfg_list = list(fs_cfg_list.values())
+            else:
+                fs_cfg_list = [fs_cfg_list]
+
         fs_cfg_list = [t for t in fs_cfg_list if t.get("type") != "LocalFs"]
 
         for fs_cfg in fs_cfg_list:

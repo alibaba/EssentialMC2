@@ -9,6 +9,7 @@ from essmc2.hooks import HOOKS
 from essmc2.utils.logger import get_logger
 from ..lr_schedulers import LR_SCHEDULERS
 from ..optimizers import OPTIMIZERS
+from essmc2.utils.typing import check_dict_of_str_dict
 
 
 class BaseSolver(object, metaclass=ABCMeta):
@@ -212,6 +213,8 @@ class BaseSolver(object, metaclass=ABCMeta):
 
     def _load_hook(self, hooks):
         if hooks is not None and len(hooks) > 0:
+            if check_dict_of_str_dict(hooks, contains_type=True):
+                hooks = list(hooks.values())
             for hook_cfg in hooks:
                 self._hooks.append(HOOKS.build(hook_cfg))
         self._hooks.sort(key=lambda a: a.priority)
