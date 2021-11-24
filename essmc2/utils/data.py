@@ -1,6 +1,37 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
+from collections import OrderedDict
+from collections.abc import Sequence
+
 import torch
+
+
+def transfer_data_to_numpy(data_map: dict) -> dict:
+    ret = OrderedDict()
+    for key, value in data_map.items():
+        if isinstance(value, torch.Tensor):
+            ret[key] = value.detach().cpu().numpy()
+        elif isinstance(value, dict):
+            ret[key] = transfer_data_to_numpy(value)
+        elif isinstance(value, Sequence):
+            ret[key] = type(value)([transfer_data_to_numpy(t) for t in value])
+        else:
+            ret[key] = value
+    return ret
+
+
+def transfer_data_to_cpu(data_map: dict) -> dict:
+    ret = OrderedDict()
+    for key, value in data_map.items():
+        if isinstance(value, torch.Tensor):
+            ret[key] = value.detach().cpu()
+        elif isinstance(value, dict):
+            ret[key] = transfer_data_to_cpu(value)
+        elif isinstance(value, Sequence):
+            ret[key] = type(value)([transfer_data_to_cpu(t) for t in value])
+        else:
+            ret[key] = value
+    return ret
 
 
 def transfer_data_to_cuda(data_map: dict) -> dict:
@@ -16,7 +47,7 @@ def transfer_data_to_cuda(data_map: dict) -> dict:
     import platform
     if platform.system() == "Darwin":
         return data_map
-    ret = {}
+    ret = OrderedDict()
     for key, value in data_map.items():
         if isinstance(value, torch.Tensor):
             if value.is_cuda:
@@ -25,4 +56,8 @@ def transfer_data_to_cuda(data_map: dict) -> dict:
                 ret[key] = value.cuda(non_blocking=True)
         elif isinstance(value, dict):
             ret[key] = transfer_data_to_cuda(value)
+        elif isinstance(value, Sequence):
+            ret[key] = type(value)([transfer_data_to_cuda(t) for t in value])
+        else:
+            ret[key] = value
     return ret

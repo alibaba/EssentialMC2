@@ -1,10 +1,12 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
+import numbers
 import os.path as osp
 import time
 from collections import defaultdict
 from typing import Optional
 
+import numpy as np
 import torch
 import torch.distributed as du
 from torch.utils.tensorboard import SummaryWriter
@@ -23,15 +25,32 @@ def _format_float(x):
         return "{:.4f}".format(x)
 
 
+def _print_v(x):
+    return _format_float(x) if isinstance(x, float) else f"{x}"
+
+
 def _print_iter_log(solver, outputs, final=False):
     extra_vars = solver.collect_log_vars()
     outputs.update(extra_vars)
-    s = [f"{k}: " + (_format_float(v) if isinstance(v, float) else f"{v}") for k, v in outputs.items()
+    s = [f"{k}: "
+         + _print_v(v[0])
+         + f"({_print_v(v[1])})"
+         for k, v in outputs.items()
          if k not in ('data_time', 'time')]
     if "time" in outputs:
-        s.insert(0, f"time: " + "{:.4f}".format(outputs["time"]))
+        v = outputs["time"]
+        s.insert(0,
+                 f"time: "
+                 + _print_v(v[0])
+                 + f"({_print_v(v[1])})"
+                 )
     if "data_time" in outputs:
-        s.insert(0, f"data_time: " + "{:.4f}".format(outputs["data_time"]))
+        v = outputs["data_time"]
+        s.insert(0,
+                 f"data_time: "
+                 + _print_v(v[0])
+                 + f"({_print_v(v[1])})"
+                 )
     solver.logger.info(
         f"Epoch [{solver.epoch}/{solver.max_epochs}], "
         f"iter: [{solver.iter + 1 if not final else solver.iter}/{solver.epoch_max_iter}], "
@@ -71,8 +90,7 @@ class LogHook(Hook):
             batch_size = 1
         log_agg.update(outputs, batch_size)
         if (solver.iter + 1) % self.log_interval == 0:
-            log_agg.aggregate()
-            _print_iter_log(solver, log_agg.output.copy())
+            _print_iter_log(solver, log_agg.aggregate())
             self.last_log_step = f"{solver.mode}-{solver.iter + 1}"
 
     def after_all_iter(self, solver):
@@ -80,8 +98,7 @@ class LogHook(Hook):
         if current_log_step == self.last_log_step:
             return
         log_agg = self.log_agg_dict[solver.mode]
-        log_agg.aggregate()
-        _print_iter_log(solver, log_agg.output.copy(), final=True)
+        _print_iter_log(solver, log_agg.aggregate(), final=True)
         self.last_log_step = current_log_step
 
         for _, value in self.log_agg_dict.items():
@@ -130,8 +147,25 @@ class TensorboardLogHook(Hook):
         outputs.update(extra_vars)
         mode = solver.mode
         for key, value in outputs.items():
-            if isinstance(value, torch.Tensor) and value.ndim == 0:
+            if isinstance(value, torch.Tensor):
+                # Must be scalar
+                if not value.ndim == 0:
+                    continue
+                if du.is_available() and du.is_initialized():
+                    value = value.data.clone()
+                    du.all_reduce(value.div_(du.get_world_size()))
                 value = value.item()
+            elif isinstance(value, np.ndarray):
+                # Must be scalar
+                if not value.ndim == 0:
+                    continue
+                value = float(value)
+            elif isinstance(value, numbers.Number):
+                # Must be number
+                pass
+            else:
+                continue
+
             self.writer.add_scalar(f"{mode}/{key}", value, global_step=solver.total_iter)
 
     def after_epoch(self, solver):

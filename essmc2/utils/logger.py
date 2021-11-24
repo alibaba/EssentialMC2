@@ -3,6 +3,7 @@
 import logging
 import sys
 from collections import OrderedDict
+import numbers
 
 import numpy as np
 import torch
@@ -61,15 +62,14 @@ class LogAgg(object):
         >>> agg = LogAgg()
         >>> agg.update(dict(loss=0.1, accuracy=0.5))
         >>> agg.update(dict(loss=0.2, accuracy=0.6))
+        >>> agg.update(dict(loss=0.3, accuracy=0.7))
         >>> agg.aggregate()
-        >>> agg.output
-        OrderedDict([('loss', 0.15000000000000002), ('accuracy', 0.55)])
+        OrderedDict([('loss', (0.3, 0.20000000000000004)), ('accuracy', (0.7, 0.6))])
     """
 
     def __init__(self):
         self.buffer = OrderedDict()
         self.counter = []
-        self.output = OrderedDict()
 
     def update(self, kv: dict, count=1):
         """ Update variables
@@ -80,31 +80,58 @@ class LogAgg(object):
         """
         for k, v in kv.items():
             if isinstance(v, torch.Tensor):
+                # Must be scalar
                 if not v.ndim == 0:
                     continue
-                # Must be scalar
                 if du.is_available() and du.is_initialized():
                     v = v.data.clone()
                     du.all_reduce(v.div_(du.get_world_size()))
                 v = v.item()
+            elif isinstance(v, np.ndarray):
+                # Must be scalar
+                if not v.ndim == 0:
+                    continue
+            elif isinstance(v, numbers.Number):
+                # Must be number
+                pass
+            else:
+                continue
+
             if k not in self.buffer:
                 self.buffer[k] = []
             self.buffer[k].append(v)
         self.counter.append(count)
 
-    def aggregate(self, n=0):
+    def _aggregate(self, n=0):
         """ Do aggregation.
 
         Args:
             n (int): recent n numbers, if 0, start from 0
+
+        Returns:
+            A dict contains aggregate values.
         """
+        ret = OrderedDict()
         for key in self.buffer:
             values = np.array(self.buffer[key][-n:])
             nums = np.array(self.counter[-n:])
             avg = np.sum(values * nums) / np.sum(nums)
-            self.output[key] = avg
+            ret[key] = avg
+        return ret
+
+    def aggregate(self):
+        """ Do aggregation with current step values and all mean values.
+
+        Returns:
+            A dict contains current step and all step mean values.
+        """
+        cur = self._aggregate(1)
+        all_mean = self._aggregate(0)
+        ret = OrderedDict()
+        for key in cur:
+            ret[key] = (cur[key], all_mean[key])
+        return ret
 
     def clear(self):
         self.buffer.clear()
         self.counter.clear()
-        self.output.clear()

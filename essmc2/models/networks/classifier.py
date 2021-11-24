@@ -1,141 +1,152 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
 from collections import OrderedDict
+from functools import partial
 
-import torch
 import torch.nn as nn
+from torch.nn.functional import softmax, sigmoid
 
 from essmc2.models.networks.train_module import TrainModule
 from essmc2.models.registry import MODELS, BACKBONES, NECKS, HEADS, LOSSES
 from essmc2.utils.logger import get_logger
-from essmc2.utils.metric import accuracy
+from essmc2.utils.metrics import METRICS
 from essmc2.utils.model import load_pretrained
+
+_ACTIVATE_MAPPER = {
+    "softmax": partial(softmax, dim=1),
+    "sigmoid": sigmoid
+}
 
 
 @MODELS.register_class()
 class Classifier(TrainModule):
+    """ Base classifier implementation.
+
+    Args:
+        backbone (dict): Defines backbone.
+        neck (dict, optional): Defines neck. Use Identity if none.
+        head (dict): Defines head.
+        act_name (str): Defines activate function, 'softmax' or 'sigmoid'.
+        topk (Sequence[int]): Defines how to calculate accuracy metrics.
+        freeze_bn (bool): If True, freeze all BatchNorm layers including LayerNorm.
+        use_pretrain (bool): If True, load pretrained model parameters from load_from.
+        load_from (str):
+    """
+
     def __init__(self,
                  backbone,
-                 neck,
-                 head,
+                 neck=None,
+                 head=None,
                  loss=None,
-                 topk=(1,)):
-        super().__init__()
-        self.backbone = BACKBONES.build(backbone)
-        self.neck = NECKS.build(neck)
-        self.head = HEADS.build(head)
-
-        self.loss = LOSSES.build(loss or dict(type='CrossEntropy'))
-
-        if isinstance(topk, int):
-            self.topk = (topk,)
-        else:
-            self.topk = topk
-
-    def forward(self, img, **kwargs):
-        return self.forward_train(img, **kwargs) if self.training else self.forward_test(img, **kwargs)
-
-    def forward_train(self, img, gt_label, **kwargs):
-        ret = OrderedDict()
-        logits = self.head(self.neck(self.backbone(img)))
-        loss = self.loss(logits, gt_label)
-        ret["loss"] = loss
-        acc = accuracy(logits, gt_label, topk=self.topk)
-        for k, acc_at_k in zip(self.topk, acc):
-            ret[f"acc@{k}"] = acc_at_k
-        return ret
-
-    def forward_test(self, img, gt_label=None, **kwargs):
-        logits = torch.nn.functional.softmax(self.head(self.neck(self.backbone(img))), dim=1)
-        if gt_label is None:
-            return logits
-        ret = OrderedDict()
-        acc = accuracy(logits, gt_label, topk=self.topk)
-        for k, acc_at_k in zip(self.topk, acc):
-            ret[f"acc@{k}"] = acc_at_k
-        return ret
-
-
-@MODELS.register_class()
-class VideoClassifier(TrainModule):
-    def __init__(self,
-                 backbone,
-                 neck,
-                 head,
-                 loss=None,
+                 act_name='softmax',
+                 topk=(1, 5),
                  freeze_bn=False,
-                 topk=(1,),
                  use_pretrain=False,
                  load_from=""):
         super().__init__()
-        self.backbone = BACKBONES.build(backbone)
-        if neck is not None:
-            self.neck = NECKS.build(neck)
-        else:
-            self.neck = None
-        self.head = HEADS.build(head)
+        # Construct model
+        self.backbone: nn.Module = BACKBONES.build(backbone)
+        self.neck: nn.Module = NECKS.build(neck or dict(type="Identity"))
+        assert head is not None
+        self.head: nn.Module = HEADS.build(head)
 
+        # Construct loss
         self.loss = LOSSES.build(loss or dict(type='CrossEntropy'))
 
+        # Construct activate function
+        self.act_fn = _ACTIVATE_MAPPER[act_name]
+        self.metric = METRICS.build(dict(type='accuracy', topk=topk))
+
         self.freeze_bn = freeze_bn
-
-        if isinstance(topk, int):
-            self.topk = (topk,)
-        else:
-            self.topk = topk
-
-        self.loss = torch.nn.CrossEntropyLoss()
 
         if use_pretrain:
             load_pretrained(self, load_from, logger=get_logger())
 
     def train(self, mode=True):
         self.training = mode
-        super(VideoClassifier, self).train(mode=mode)
-        for module in self.modules():
-            if isinstance(module, (nn.BatchNorm2d, nn.BatchNorm3d, nn.LayerNorm)) and self.freeze_bn:
-                module.train(False)
+        super(Classifier, self).train(mode=mode)
+        if self.freeze_bn:
+            for module in self.modules():
+                if isinstance(module, (nn.BatchNorm2d, nn.BatchNorm3d, nn.LayerNorm)):
+                    module.train(False)
         return self
 
-    def forward(self, video, **kwargs):
-        return self.forward_train(video, **kwargs) if self.training else self.forward_test(video, **kwargs)
+    def forward(self, img, **kwargs):
+        return self.forward_train(img, **kwargs) if self.training else self.forward_test(img)
 
-    def forward_train(self, video, gt_label, **kwargs):
-        ret = OrderedDict()
+    def forward_train(self, img, gt_label=None):
+        probs = self.head(self.neck(self.backbone(img)))
+        if gt_label is not None:
+            ret = OrderedDict()
+            loss = self.loss(probs, gt_label)
+            ret["loss"] = loss
+            ret["batch_size"] = img.size(0)
+            ret.update(self.metric(probs, gt_label))
+            return ret
 
-        x = self.backbone(video)
-        if self.neck is not None:
-            x = self.neck(x)
-        probs = self.head(x)
+        return self.act_fn(probs)
 
+    def forward_test(self, img, gt_label=None):
+        logits = self.act_fn(self.head(self.neck(self.backbone(img))))
         if gt_label is None:
-            return probs
-
-        loss = self.loss(probs, gt_label)
-        ret["loss"] = loss
-        with torch.no_grad():
-            acc_topk = accuracy(probs, gt_label, self.topk)
-        for acc, k in zip(acc_topk, self.topk):
-            ret[f"acc@{k}"] = acc
-        ret["batch_size"] = video.size(0)
+            return logits
+        ret = OrderedDict()
+        ret["logits"] = logits
+        ret.update(self.metric(logits, gt_label))
         return ret
 
-    def forward_test(self, video, gt_label=None, **kwargs):
-        x = self.backbone(video)
-        if self.neck is not None:
-            x = self.neck(x)
-        probs = self.head(x)
 
-        if type(probs) is tuple:
-            probs = tuple([nn.functional.softmax(t, dim=1) for t in probs])
-        else:
-            probs = nn.functional.softmax(probs, dim=1)
+@MODELS.register_class()
+class VideoClassifier(Classifier):
+    """ Classifier for video.
+    Default input tensor is video.
 
+    """
+
+    def forward(self, video, **kwargs):
+        return self.forward_train(video, **kwargs) if self.training else self.forward_test(video)
+
+
+@MODELS.register_class()
+class VideoClassifier2x(VideoClassifier):
+    """ A 2-way classifier for video.
+
+    """
+
+    def forward_train(self, video, gt_label=None):
+        probs0, probs1 = self.head(self.neck(self.backbone(video)))
+        if gt_label is not None:
+            ret = OrderedDict()
+            loss = self.loss(probs0, gt_label[:, 0]) + self.loss(probs1, gt_label[:, 1])
+            ret["loss"] = loss
+            ret["batch_size"] = video.size(0)
+            acc_0 = self.metric(probs0, gt_label[:, 0])
+            acc_0 = {key.relace("@", "_0@"): value for key, value in acc_0.items()}
+            acc_1 = self.metric(probs1, gt_label[:, 1])
+            acc_1 = {key.relace("@", "_1@"): value for key, value in acc_1.items()}
+            ret.update(acc_0)
+            ret.update(acc_1)
+            return ret
+        return {
+            "logits0": self.act_fn(probs0),
+            "logits1": self.act_fn(probs1)
+        }
+
+    def forward_test(self, video, gt_label=None):
+        probs0, probs1 = self.head(self.neck(self.backbone(video)))
+        logits0, logits1 = self.act_fn(probs0), self.act_fn(probs1)
         if gt_label is None:
-            return probs
+            return {
+                "logits0": logits0,
+                "logits1": logits1
+            }
         ret = OrderedDict()
-        acc_topk = accuracy(probs, gt_label, self.topk)
-        for acc, k in zip(acc_topk, self.topk):
-            ret[f"acc@{k}"] = acc
-        ret["batch_size"] = video.size(0)
+        ret["logits0"] = logits0
+        ret["logits1"] = logits1
+        acc_0 = self.metric(probs0, gt_label[:, 0])
+        acc_0 = {key.relace("@", "_0@"): value for key, value in acc_0.items()}
+        acc_1 = self.metric(probs1, gt_label[:, 1])
+        acc_1 = {key.relace("@", "_1@"): value for key, value in acc_1.items()}
+        ret.update(acc_0)
+        ret.update(acc_1)
         return ret

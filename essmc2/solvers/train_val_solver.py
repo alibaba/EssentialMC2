@@ -2,43 +2,28 @@
 
 import torch
 
-from .base_solver import BaseSolver
+from .evaluation_solver import EvaluationSolver
 from .registry import SOLVERS
 from ..utils.data import transfer_data_to_cuda
 
 
 @SOLVERS.register_class()
-class TrainValSolver(BaseSolver):
+class TrainValSolver(EvaluationSolver):
     """ Standard train and eval steps solver
 
     Args:
         model (torch.nn.Module): Model to train or eval.
-        eval_interval (int): Interval between epochs, default is 1.
 
     """
 
-    def __init__(self, model, eval_interval=1, **kwargs):
+    def __init__(self, model, **kwargs):
         super().__init__(model, **kwargs)
-        self.eval_interval = eval_interval
 
     def run_train_epoch(self, train_data_loader):
         self.train_mode()
         self.before_all_iter()
         self._epoch_max_iter = len(train_data_loader)
         for data in train_data_loader:
-            self.before_iter()
-            data_gpu = transfer_data_to_cuda(data)
-            self._iter_outputs = self.model(**data_gpu)
-            self.after_iter()
-        self.after_all_iter()
-
-    @torch.no_grad()
-    def run_eval_epoch(self, val_data_loader):
-        self.eval_mode()
-        self._iter = 0
-        self._epoch_max_iter = len(val_data_loader)
-        self.before_all_iter()
-        for data in val_data_loader:
             self.before_iter()
             data_gpu = transfer_data_to_cuda(data)
             self._iter_outputs = self.model(**data_gpu)

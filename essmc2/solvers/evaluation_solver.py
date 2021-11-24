@@ -1,25 +1,70 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
+import os.path as osp
+from collections import defaultdict, OrderedDict
+
 import torch
 
 from .base_solver import BaseSolver
 from .registry import SOLVERS
-from ..utils.data import transfer_data_to_cuda
+from ..utils.data import transfer_data_to_cuda, transfer_data_to_cpu
+from ..utils.distribute import gather_gpu_tensors
+from ..utils.distribute import get_dist_info
+from ..utils.file_systems import FS
+from ..utils.metrics import METRICS
+from ..utils.typing import Sequence
 
 
 @SOLVERS.register_class()
 class EvaluationSolver(BaseSolver):
-    """ Evaluation solver once.
+    """ Evaluation once.
+
+    1. Inference results and ground truth data such as gt_label will be collected,
+        according to metric_cfg.keys
+    2. Finally, metric functions will be invoked on related keys.
+
+    Notice all result tensors can be placed on ONE GPU device.
 
     Args:
         model (torch.nn.Module): Model to train or eval.
+        do_final_eval (bool): If True, collect all results according to metric_cfg
+            and calculate metric values in the end. Default is False.
+        eval_metric_cfg (dict, Sequence, optional): Metric function descriptor like
+            {
+                "metric": dict(type="accuracy", topk=(1, )),
+                "keys": ("result", "gt_label")
+            }
+        save_eval_data (bool): If True, save all collected data. Default path is
+            "WORK_DIR/eval_{epoch}_data.pth"
+
     """
 
-    def __init__(self, model, **kwargs):
+    def __init__(self,
+                 model,
+                 eval_interval=1,
+                 do_final_eval=False,
+                 eval_metric_cfg=None,
+                 save_eval_data=False,
+                 **kwargs):
         super().__init__(model, **kwargs)
+
+        self.eval_interval = eval_interval
+        self.metrics = []
+        self.collect_keys = set()
+        self._build_metrics(eval_metric_cfg)
+        self.do_final_eval = do_final_eval
+        self.save_eval_data = save_eval_data
 
     @torch.no_grad()
     def run_eval_epoch(self, val_data_loader):
+        if (self.epoch + 1) % self.eval_interval != 0:
+            return
+
+        collect_data = defaultdict(list)
+
+        rank, world_size = get_dist_info()
+
+        # Enter evaluate mode
         self.eval_mode()
         self._iter = 0
         self._epoch_max_iter = len(val_data_loader)
@@ -27,9 +72,52 @@ class EvaluationSolver(BaseSolver):
         for data in val_data_loader:
             self.before_iter()
             data_gpu = transfer_data_to_cuda(data)
-            self._iter_outputs = self.model(**data_gpu)
+            result = self.model(**data_gpu)
+
+            self._iter_outputs = result
+
+            if self.do_final_eval:
+                # Collect data
+                if isinstance(result, torch.Tensor):
+                    data_gpu["result"] = result
+                elif isinstance(result, dict):
+                    data_gpu.update(result)
+
+                step_data = {key: data_gpu[key] for key in self.collect_keys}
+                step_data = transfer_data_to_cpu(step_data)
+
+                for key, value in step_data:
+                    collect_data[key].append(value.clone())
+
             self.after_iter()
         self.after_all_iter()
+
+        if self.do_final_eval:
+            # Concat collect_data
+            concat_collect_data = OrderedDict()
+            for key, tensors in collect_data.items():
+                concat_collect_data[key] = torch.cat(tensors)
+
+            # If distributed and use DistributedSampler
+            # Gather all collect data to rank 0
+            if world_size > 0 and \
+                    (val_data_loader.sampler is not None or val_data_loader.batch_sampler is not None):
+                concat_collect_data = transfer_data_to_cuda(concat_collect_data)
+                concat_collect_data = {key: gather_gpu_tensors(tensor) for key, tensor in concat_collect_data.items()}
+
+            # Do final evaluate
+            if rank == 0:
+                for metric in self.metrics:
+                    self.epoch_outputs.update(metric["fn"](*[concat_collect_data[key] for key in metric["keys"]]))
+
+            # Save all data
+            if self.save_eval_data:
+                save_path = osp.join(self.work_dir, "eval_{:05d}.pth".format(self.epoch))
+                with FS.get_fs_client(save_path) as client:
+                    local_file = client.convert_to_local_path(save_path)
+                    with open(local_file, "wb") as f:
+                        torch.save(concat_collect_data, f)
+                    client.put_object_from_local_file(local_file, save_path)
 
     def run_epoch(self, data_loaders):
         self.max_epochs = 1
@@ -42,3 +130,16 @@ class EvaluationSolver(BaseSolver):
 
     def save_checkpoint(self) -> dict:
         raise NotImplementedError
+
+    def _build_metrics(self, metric_cfg):
+        if isinstance(metric_cfg, Sequence):
+            for cfg in metric_cfg:
+                self._build_metrics(cfg)
+        elif isinstance(metric_cfg, dict):
+            fn = METRICS.build(metric_cfg["metric"])
+            keys = metric_cfg["keys"]
+            self.metrics.append({
+                "fn": fn,
+                "keys": keys
+            })
+            self.collect_keys.update(keys)

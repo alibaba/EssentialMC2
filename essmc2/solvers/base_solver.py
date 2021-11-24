@@ -89,6 +89,8 @@ class BaseSolver(object, metaclass=ABCMeta):
         [t.after_epoch(self) for t in self._hooks]
         self._epoch += self.num_folds
         self._iter = 0
+        self._iter_outputs.clear()
+        self._epoch_outputs.clear()
 
     def before_all_iter(self):
         [t.before_all_iter(self) for t in self._hooks]
