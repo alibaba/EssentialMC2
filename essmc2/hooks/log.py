@@ -47,6 +47,7 @@ class LogHook(Hook):
         self.log_agg_dict = defaultdict(LogAgg)
 
         self.last_log_step = "train-0"
+        self.is_log = False
 
         self.time = time.time()
         self.data_time = 0
@@ -74,10 +75,11 @@ class LogHook(Hook):
             log_agg.aggregate()
             _print_iter_log(solver, log_agg.output.copy())
             self.last_log_step = f"{solver.mode}-{solver.iter + 1}"
+            self.is_log = True
 
     def after_all_iter(self, solver):
         current_log_step = f"{solver.mode}-{solver.iter}"
-        if current_log_step == self.last_log_step:
+        if current_log_step == self.last_log_step and self.is_log:
             return
         log_agg = self.log_agg_dict[solver.mode]
         log_agg.aggregate()
