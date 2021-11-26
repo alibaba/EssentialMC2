@@ -126,15 +126,31 @@ def get_data(cfg, logger):
     logger.info(f"Built train dataloader with len {len(train_dataloader)}")
 
     if eval_dataset is not None:
-        eval_dataloader = DataLoader(
-            eval_dataset,
-            batch_size=cfg.data['eval']['samples_per_gpu'],
-            shuffle=False,
-            sampler=None,
-            num_workers=cfg.data['eval']['workers_per_gpu'],
-            pin_memory=pin_memory,
-            drop_last=False
-        )
+        if cfg.dist.distributed:
+            eval_sampler = DistributedSampler(train_dataset, world_size, rank, shuffle=False)
+            collate_fn = partial(gpu_batch_collate, device_id=rank) \
+                if cfg.dist["dist_launcher"] == "pytorch" and use_gpu_preprocess else None
+            eval_dataloader = DataLoader(
+                eval_dataset,
+                batch_size=cfg.data['eval']['samples_per_gpu'],
+                shuffle=False,
+                sampler=eval_sampler,
+                num_workers=cfg.data['eval']['workers_per_gpu'],
+                pin_memory=pin_memory,
+                drop_last=False,
+                collate_fn=collate_fn
+            )
+        else:
+            eval_dataloader = DataLoader(
+                eval_dataset,
+                batch_size=cfg.data['eval']['samples_per_gpu'],
+                shuffle=False,
+                sampler=None,
+                num_workers=cfg.data['eval']['workers_per_gpu'],
+                pin_memory=pin_memory,
+                drop_last=False
+            )
+
         logger.info(f"Built eval dataloader with len {len(eval_dataloader)}")
 
     else:
