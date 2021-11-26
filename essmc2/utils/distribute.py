@@ -26,7 +26,7 @@ def gather_gpu_tensors(tensor):
     shape_tensor = torch.tensor(tensor.shape[0], device="cuda")
     shape_list = [shape_tensor.clone() for _ in range(world_size)]
     dist.all_gather(shape_list, shape_tensor)
-    shape_max = torch.tensor(shape_list).max(dim=0)
+    shape_max = torch.tensor(shape_list).max()
 
     tensor_send = torch.zeros((shape_max, *tensor.shape[1:]), dtype=tensor.dtype, device="cuda")
     tensor_send[0:tensor.shape[0]] = tensor
