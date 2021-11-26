@@ -114,8 +114,7 @@ class EvaluationSolver(BaseSolver):
                 save_path = osp.join(self.work_dir, "eval_{:05d}.pth".format(self.epoch))
                 with FS.get_fs_client(save_path) as client:
                     local_file = client.convert_to_local_path(save_path)
-                    with open(local_file, "wb") as f:
-                        torch.save(concat_collect_data, f)
+                    torch.save(concat_collect_data, local_file)
                     client.put_object_from_local_file(local_file, save_path)
 
     def run_epoch(self, data_loaders):

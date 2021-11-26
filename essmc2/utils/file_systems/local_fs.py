@@ -10,6 +10,9 @@ class LocalFs(BaseFs):
     def __init__(self):
         super(LocalFs, self).__init__()
 
+    def convert_to_local_path(self, target_path):
+        return target_path
+
     def get_object_to_local_file(self, path) -> str:
         return path
 
