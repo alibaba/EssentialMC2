@@ -32,11 +32,14 @@ def _print_v(x):
 def _print_iter_log(solver, outputs, final=False):
     extra_vars = solver.collect_log_vars()
     outputs.update(extra_vars)
-    s = [f"{k}: "
-         + _print_v(v[0])
-         + f"({_print_v(v[1])})"
-         for k, v in outputs.items()
-         if k not in ('data_time', 'time')]
+    s = []
+    for k, v in outputs.items():
+        if k in ('data_time', 'time'):
+            continue
+        if isinstance(v, (list, tuple)) and len(v) == 2:
+            s.append(f"{k}: " + _print_v(v[0]) + f"({_print_v(v[1])})")
+        else:
+            s.append(f"{k}: " + _print_v(v))
     if "time" in outputs:
         v = outputs["time"]
         s.insert(0,

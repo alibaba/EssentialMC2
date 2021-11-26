@@ -39,7 +39,7 @@ class Classifier(TrainModule):
                  head=None,
                  loss=None,
                  act_name='softmax',
-                 topk=(1, 5),
+                 topk=(1,),
                  freeze_bn=False,
                  use_pretrain=False,
                  load_from=""):
