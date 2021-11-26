@@ -1,7 +1,6 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
 from collections import OrderedDict
-from collections.abc import Sequence
 
 import torch
 
@@ -13,7 +12,7 @@ def transfer_data_to_numpy(data_map: dict) -> dict:
             ret[key] = value.detach().cpu().numpy()
         elif isinstance(value, dict):
             ret[key] = transfer_data_to_numpy(value)
-        elif isinstance(value, Sequence):
+        elif isinstance(value, (list, tuple)):
             ret[key] = type(value)([transfer_data_to_numpy(t) for t in value])
         else:
             ret[key] = value
@@ -27,7 +26,7 @@ def transfer_data_to_cpu(data_map: dict) -> dict:
             ret[key] = value.detach().cpu()
         elif isinstance(value, dict):
             ret[key] = transfer_data_to_cpu(value)
-        elif isinstance(value, Sequence):
+        elif isinstance(value, (list, tuple)):
             ret[key] = type(value)([transfer_data_to_cpu(t) for t in value])
         else:
             ret[key] = value
@@ -56,7 +55,7 @@ def transfer_data_to_cuda(data_map: dict) -> dict:
                 ret[key] = value.cuda(non_blocking=True)
         elif isinstance(value, dict):
             ret[key] = transfer_data_to_cuda(value)
-        elif isinstance(value, Sequence):
+        elif isinstance(value, (list, tuple)):
             ret[key] = type(value)([transfer_data_to_cuda(t) for t in value])
         else:
             ret[key] = value

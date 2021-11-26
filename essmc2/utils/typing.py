@@ -1,6 +1,3 @@
-from collections.abc import Sequence
-
-
 def check_dict_of_str_dict(input_dict, contains_type=False):
     """ Check input dict has typing Dict[str, dict]
 
@@ -25,11 +22,11 @@ def check_dict_of_str_dict(input_dict, contains_type=False):
 
 
 def check_seq_of_seq(input_list):
-    if not isinstance(input_list, Sequence):
+    if not isinstance(input_list, (list, tuple)):
         return False
     if len(input_list) == 0:
         return False
     for t in input_list:
-        if not isinstance(t, Sequence):
+        if not isinstance(t, (list, tuple)):
             return False
     return True

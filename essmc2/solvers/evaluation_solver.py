@@ -12,7 +12,6 @@ from ..utils.distribute import gather_gpu_tensors
 from ..utils.distribute import get_dist_info
 from ..utils.file_systems import FS
 from ..utils.metrics import METRICS
-from ..utils.typing import Sequence
 
 
 @SOLVERS.register_class()
@@ -132,7 +131,7 @@ class EvaluationSolver(BaseSolver):
         raise NotImplementedError
 
     def _build_metrics(self, metric_cfg):
-        if isinstance(metric_cfg, Sequence):
+        if isinstance(metric_cfg, (list, tuple)):
             for cfg in metric_cfg:
                 self._build_metrics(cfg)
         elif isinstance(metric_cfg, dict):
