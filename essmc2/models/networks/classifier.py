@@ -71,8 +71,9 @@ class Classifier(TrainModule):
                     module.train(False)
         return self
 
-    def forward(self, img, **kwargs):
-        return self.forward_train(img, **kwargs) if self.training else self.forward_test(img)
+    def forward(self, img, gt_label=None, **kwargs):
+        return self.forward_train(img, gt_label=gt_label) \
+            if self.training else self.forward_test(img, gt_label=gt_label)
 
     def forward_train(self, img, gt_label=None):
         probs = self.head(self.neck(self.backbone(img)))
@@ -103,8 +104,9 @@ class VideoClassifier(Classifier):
 
     """
 
-    def forward(self, video, **kwargs):
-        return self.forward_train(video, **kwargs) if self.training else self.forward_test(video)
+    def forward(self, video, gt_label=None, **kwargs):
+        return self.forward_train(video, gt_label=gt_label) \
+            if self.training else self.forward_test(video, gt_label=gt_label)
 
 
 @MODELS.register_class()

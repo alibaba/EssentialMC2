@@ -6,6 +6,8 @@ import torch
 
 
 def transfer_data_to_numpy(data_map: dict) -> dict:
+    if not isinstance(data_map, dict):
+        return data_map
     ret = OrderedDict()
     for key, value in data_map.items():
         if isinstance(value, torch.Tensor):
@@ -20,6 +22,8 @@ def transfer_data_to_numpy(data_map: dict) -> dict:
 
 
 def transfer_data_to_cpu(data_map: dict) -> dict:
+    if not isinstance(data_map, dict):
+        return data_map
     ret = OrderedDict()
     for key, value in data_map.items():
         if isinstance(value, torch.Tensor):
@@ -45,6 +49,8 @@ def transfer_data_to_cuda(data_map: dict) -> dict:
     """
     import platform
     if platform.system() == "Darwin":
+        return data_map
+    if not isinstance(data_map, dict):
         return data_map
     ret = OrderedDict()
     for key, value in data_map.items():
