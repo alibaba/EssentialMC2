@@ -82,14 +82,22 @@ class LrHook(Hook):
                     new_lr = self._get_warmup_lr(solver.epoch)
                     for param_group in solver.optimizer.param_groups:
                         param_group["lr"] = new_lr
-                solver.logger.info(f"Change learning rate from {last_lr} to {new_lr}")
+                if last_lr != new_lr:
+                    solver.logger.info(f"Change learning rate from {last_lr} to {new_lr}")
+                else:
+                    solver.logger.info(f"Keep learning rate = {last_lr}")
 
     def before_iter(self, solver):
         if not self.set_by_epoch and solver.is_train_mode and solver.lr_scheduler is not None:
+            last_lr = solver.optimizer.param_groups[0]["lr"]
             cur_epoch_float = solver.epoch + solver.num_folds * solver.iter / solver.epoch_max_iter
             if self.warmup_func is not None and cur_epoch_float < self.warmup_epochs:
-                lr = self._get_warmup_lr(cur_epoch_float)
+                new_lr = self._get_warmup_lr(cur_epoch_float)
             else:
-                lr = _get_lr_from_scheduler(solver.lr_scheduler, cur_epoch_float)
+                new_lr = _get_lr_from_scheduler(solver.lr_scheduler, cur_epoch_float)
             for param_group in solver.optimizer.param_groups:
-                param_group["lr"] = lr
+                param_group["lr"] = new_lr
+            if last_lr != new_lr:
+                solver.logger.info(f"Change learning rate from {last_lr} to {new_lr}")
+            else:
+                solver.logger.info(f"Keep learning rate = {last_lr}")

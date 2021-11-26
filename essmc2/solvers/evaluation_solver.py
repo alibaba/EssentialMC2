@@ -99,8 +99,7 @@ class EvaluationSolver(BaseSolver):
 
             # If distributed and use DistributedSampler
             # Gather all collect data to rank 0
-            if world_size > 0 and \
-                    (val_data_loader.sampler is not None or val_data_loader.batch_sampler is not None):
+            if world_size > 0 and type(val_data_loader.sampler) is torch.utils.data.DistributedSampler:
                 concat_collect_data = transfer_data_to_cuda(concat_collect_data)
                 concat_collect_data = {key: gather_gpu_tensors(tensor) for key, tensor in concat_collect_data.items()}
 
@@ -110,7 +109,7 @@ class EvaluationSolver(BaseSolver):
                     self.epoch_outputs.update(metric["fn"](*[concat_collect_data[key] for key in metric["keys"]]))
 
             # Save all data
-            if self.save_eval_data:
+            if self.save_eval_data and rank == 0:
                 save_path = osp.join(self.work_dir, "eval_{:05d}.pth".format(self.epoch))
                 with FS.get_fs_client(save_path) as client:
                     local_file = client.convert_to_local_path(save_path)
@@ -119,8 +118,7 @@ class EvaluationSolver(BaseSolver):
 
     def run_epoch(self, data_loaders):
         self.max_epochs = 1
-        assert "val" in data_loaders
-        self.logger.info(f"Begin to evaluate...")
+        self.logger.info(f"Begin to evaluate ...")
         self.run_eval_epoch(data_loaders["val"])
 
     def load_checkpoint(self, checkpoint: dict):

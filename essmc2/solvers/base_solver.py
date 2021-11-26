@@ -66,7 +66,7 @@ class BaseSolver(object, metaclass=ABCMeta):
         self.data_loaders = data_loaders
         self.before_solve()
         while self._epoch < self.max_epochs:
-            self.logger.info(f"Begin to solve epoch [{self._epoch}/{self.max_epochs}]...")
+            self.logger.info(f"Begin to solve at Epoch [{self._epoch}/{self.max_epochs}]...")
             self.before_epoch()
             self.run_epoch(data_loaders)
             self.after_epoch()
