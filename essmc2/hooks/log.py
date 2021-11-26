@@ -98,20 +98,19 @@ class LogHook(Hook):
 
     def after_all_iter(self, solver):
         current_log_step = f"{solver.mode}-{solver.iter}"
-        if current_log_step == self.last_log_step:
-            return
-        log_agg = self.log_agg_dict[solver.mode]
-        _print_iter_log(solver, log_agg.aggregate(), final=True)
-        self.last_log_step = current_log_step
+        if current_log_step != self.last_log_step:
+            log_agg = self.log_agg_dict[solver.mode]
+            _print_iter_log(solver, log_agg.aggregate(), final=True)
+            self.last_log_step = current_log_step
 
         for _, value in self.log_agg_dict.items():
-            value.clear()
+            value.reset()
 
     def after_epoch(self, solver):
         outputs = solver.epoch_outputs
         if len(outputs) == 0:
             return
-        s = [f"{k}: " + _format_float(v) if isinstance(v, float) else f"{v}" for k, v in outputs.items()]
+        s = [f"{k}: " + _print_v(v) for k, v in outputs.items()]
         solver.logger.info(
             f"Epoch [{solver.epoch}/{solver.max_epochs}], "
             f"{', '.join(s)}")

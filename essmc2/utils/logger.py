@@ -132,6 +132,6 @@ class LogAgg(object):
             ret[key] = (cur[key], all_mean[key])
         return ret
 
-    def clear(self):
+    def reset(self):
         self.buffer.clear()
         self.counter.clear()

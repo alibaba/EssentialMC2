@@ -85,7 +85,7 @@ class EvaluationSolver(BaseSolver):
                 step_data = {key: data_gpu[key] for key in self.collect_keys}
                 step_data = transfer_data_to_cpu(step_data)
 
-                for key, value in step_data:
+                for key, value in step_data.items():
                     collect_data[key].append(value.clone())
 
             self.after_iter()
