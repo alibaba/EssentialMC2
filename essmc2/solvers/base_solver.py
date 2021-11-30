@@ -1,7 +1,7 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
 from abc import abstractmethod, ABCMeta
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 import torch
 
@@ -47,16 +47,17 @@ class BaseSolver(object, metaclass=ABCMeta):
         self.logger = logger or get_logger()
         self.envs = envs or {}
         self.max_epochs = max_epochs
-        self.num_folds = num_folds
-        self._epoch = 0
-        self._epoch_max_iter = 0
-        self._iter = 0
-        self._total_train_iter = 0
-        self._total_eval_iter = 0
-        self._total_test_iter = 0
-        self._iter_outputs = dict()
-        self._epoch_outputs = dict()
-        self._mode = 'train'  # current mode, 'train' or 'val'
+        self._num_folds = num_folds
+        self._epoch: int = 0
+        # epoch_max_iter, iter, total_iter, iter_outputs, epoch_outputs
+        # values is different according to self._mode
+        self._epoch_max_iter: defaultdict = defaultdict(int)
+        self._iter: defaultdict = defaultdict(int)
+        self._total_iter: defaultdict = defaultdict(int)
+        self._iter_outputs = defaultdict(dict)
+        self._agg_iter_outputs = defaultdict(dict)
+        self._epoch_outputs = defaultdict(dict)
+        self._mode: str = 'train'  # current mode, 'train' 'eval' 'test' ...
         self._hooks = []
         self._load_hook(hooks)
         self.data_loaders = {}
@@ -85,13 +86,6 @@ class BaseSolver(object, metaclass=ABCMeta):
     def before_epoch(self, *args, **kwargs):
         [t.before_epoch(self) for t in self._hooks]
 
-    def after_epoch(self, *args, **kwargs):
-        [t.after_epoch(self) for t in self._hooks]
-        self._epoch += self.num_folds
-        self._iter = 0
-        self._iter_outputs.clear()
-        self._epoch_outputs.clear()
-
     def before_all_iter(self):
         [t.before_all_iter(self) for t in self._hooks]
 
@@ -100,17 +94,18 @@ class BaseSolver(object, metaclass=ABCMeta):
 
     def after_iter(self, *args, **kwargs):
         [t.after_iter(self) for t in self._hooks]
-        if self.is_train_mode:
-            self._total_train_iter += 1
-        elif self.is_eval_mode:
-            self._total_eval_iter += 1
-        else:
-            self._total_test_iter += 1
-
-        self._iter += 1
+        self._total_iter[self._mode] += 1
+        self._iter[self._mode] += 1
 
     def after_all_iter(self, *args, **kwargs):
         [t.after_all_iter(self) for t in self._hooks]
+
+    def after_epoch(self, *args, **kwargs):
+        [t.after_epoch(self) for t in self._hooks]
+        self._epoch += self._num_folds
+        self._iter.clear()
+        self._iter_outputs.clear()
+        self._epoch_outputs.clear()
 
     def collect_log_vars(self) -> OrderedDict:
         ret = OrderedDict()
@@ -137,7 +132,11 @@ class BaseSolver(object, metaclass=ABCMeta):
         pass
 
     @property
-    def epoch(self):
+    def num_folds(self) -> int:
+        return self._num_folds
+
+    @property
+    def epoch(self) -> int:
         return self._epoch
 
     @epoch.setter
@@ -145,48 +144,36 @@ class BaseSolver(object, metaclass=ABCMeta):
         self._epoch = new_epoch
 
     @property
-    def iter(self):
-        return self._iter
-
-    @iter.setter
-    def iter(self, new_iter):
-        self._iter = new_iter
+    def iter(self) -> int:
+        return self._iter[self._mode]
 
     @property
-    def total_train_iter(self):
-        return self._total_train_iter
+    def total_iter(self) -> int:
+        return self._total_iter[self._mode]
 
     @property
-    def total_eval_iter(self):
-        return self._total_eval_iter
+    def epoch_max_iter(self) -> int:
+        return self._epoch_max_iter[self._mode]
 
     @property
-    def total_test_iter(self):
-        return self._total_test_iter
-
-    @property
-    def total_iter(self):
-        if self.mode == "train":
-            return self.total_train_iter
-        elif self.mode == "eval":
-            return self.total_eval_iter
-        else:
-            return self.total_test_iter
-
-    @property
-    def epoch_max_iter(self):
-        return self._epoch_max_iter
-
-    @property
-    def mode(self):
+    def mode(self) -> str:
         return self._mode
 
     @property
-    def iter_outputs(self):
-        return self._iter_outputs
+    def iter_outputs(self) -> dict:
+        return self._iter_outputs[self._mode]
 
     @property
-    def epoch_outputs(self):
+    def agg_iter_outputs(self) -> dict:
+        return self._agg_iter_outputs
+
+    @agg_iter_outputs.setter
+    def agg_iter_outputs(self, new_outputs):
+        assert type(new_outputs) is dict
+        self._agg_iter_outputs[self._mode] = new_outputs
+
+    @property
+    def epoch_outputs(self) -> dict:
         return self._epoch_outputs
 
     @property

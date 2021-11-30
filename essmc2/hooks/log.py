@@ -26,7 +26,12 @@ def _format_float(x):
 
 
 def _print_v(x):
-    return _format_float(x) if isinstance(x, float) else f"{x}"
+    if isinstance(x, float):
+        return _format_float(x)
+    elif isinstance(x, torch.Tensor) and x.ndim == 0:
+        return _print_v(x.item())
+    else:
+        return f"{x}"   
 
 
 def _print_iter_log(solver, outputs, final=False):
@@ -98,10 +103,11 @@ class LogHook(Hook):
             self.last_log_step = (solver.mode, solver.iter + 1)
 
     def after_all_iter(self, solver):
+        outputs = self.log_agg_dict[solver.mode].aggregate(solver.iter - self.last_log_step[1])
+        solver.agg_iter_outputs = {key: value[1] for key, value in outputs.items()}
         current_log_step = (solver.mode, solver.iter)
         if current_log_step != self.last_log_step:
-            log_agg = self.log_agg_dict[solver.mode]
-            _print_iter_log(solver, log_agg.aggregate(solver.iter - self.last_log_step[1]), final=True)
+            _print_iter_log(solver, outputs, final=True)
             self.last_log_step = current_log_step
 
         for _, value in self.log_agg_dict.items():
@@ -109,12 +115,21 @@ class LogHook(Hook):
 
     def after_epoch(self, solver):
         outputs = solver.epoch_outputs
-        if len(outputs) == 0:
-            return
-        s = [f"{k}: " + _print_v(v) for k, v in outputs.items()]
-        solver.logger.info(
-            f"Epoch [{solver.epoch}/{solver.max_epochs}], "
-            f"{', '.join(s)}")
+        mode_s = []
+        for mode_name, kvs in outputs.items():
+            if len(kvs) == 0:
+                return
+            s = [f"{k}: " + _print_v(v) for k, v in kvs.items()]
+            mode_s.append(f"{mode_name} -> {', '.join(s)}")
+        if len(mode_s) > 1:
+            states = '\n\t'.join(mode_s)
+            solver.logger.info(
+                f'Epoch [{solver.epoch}/{solver.max_epochs}], \n\t'
+                f'{states}'
+            )
+        elif len(mode_s) == 1:
+            solver.logger.info(
+                f'Epoch [{solver.epoch}/{solver.max_epochs}], {mode_s[0]}')
 
 
 @HOOKS.register_class()
@@ -169,14 +184,15 @@ class TensorboardLogHook(Hook):
             else:
                 continue
 
-            self.writer.add_scalar(f"{mode}/{key}", value, global_step=solver.total_iter)
+            self.writer.add_scalar(f"{mode}/iter/{key}", value, global_step=solver.total_iter)
 
     def after_epoch(self, solver):
         if self.writer is None:
             return
         outputs = solver.epoch_outputs.copy()
-        for key, value in outputs.items():
-            self.writer.add_scalar(key, value, global_step=solver.epoch)
+        for mode, kvs in outputs.items():
+            for key, value in kvs.items():
+                self.writer.add_scalar(f"{mode}/epoch/{key}", value, global_step=solver.epoch)
 
     def after_solve(self, solver):
         if self.writer is None:

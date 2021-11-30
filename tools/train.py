@@ -260,7 +260,7 @@ def main():
     # Load Dataset
     logger.info(f"Building data...")
     data = get_data(cfg, logger)
-    logger.info(f"Built data: \n{list(data.keys())}")
+    logger.info(f"Built data: {list(data.keys())}")
 
     # Load Solver
     logger.info("Building solver...")

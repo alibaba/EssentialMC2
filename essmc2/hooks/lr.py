@@ -75,7 +75,7 @@ class LrHook(Hook):
         if solver.lr_scheduler is not None:
             if self.set_by_epoch:
                 last_lr = solver.optimizer.param_groups[0]["lr"]
-                for _ in range(solver.num_folds):
+                for _ in range(solver._num_folds):
                     solver.lr_scheduler.step()
                 new_lr = solver.optimizer.param_groups[0]["lr"]
                 if self.warmup_func is not None and solver.epoch < self.warmup_epochs:
@@ -90,7 +90,7 @@ class LrHook(Hook):
     def before_iter(self, solver):
         if not self.set_by_epoch and solver.is_train_mode and solver.lr_scheduler is not None:
             last_lr = solver.optimizer.param_groups[0]["lr"]
-            cur_epoch_float = solver.epoch + solver.num_folds * solver.iter / solver.epoch_max_iter
+            cur_epoch_float = solver.epoch + solver._num_folds * solver.iter / solver.epoch_max_iter
             if self.warmup_func is not None and cur_epoch_float < self.warmup_epochs:
                 new_lr = self._get_warmup_lr(cur_epoch_float)
             else:

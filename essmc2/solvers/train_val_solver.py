@@ -22,11 +22,11 @@ class TrainValSolver(EvaluationSolver):
     def run_train_epoch(self, train_data_loader):
         self.train_mode()
         self.before_all_iter()
-        self._epoch_max_iter = len(train_data_loader)
+        self._epoch_max_iter[self._mode] = len(train_data_loader)
         for data in train_data_loader:
             self.before_iter()
             data_gpu = transfer_data_to_cuda(data)
-            self._iter_outputs = self.model(**data_gpu)
+            self._iter_outputs[self._mode] = self.model(**data_gpu)
             self.after_iter()
         self.after_all_iter()
 
@@ -41,7 +41,8 @@ class TrainValSolver(EvaluationSolver):
 
     def load_checkpoint(self, checkpoint: dict):
         self._epoch = checkpoint["epoch"]
-        self._total_train_iter = checkpoint["total_train_iter"]
+        for mode_name, total_iter in checkpoint["total_iters"].items():
+            self._total_iter[mode_name] = total_iter
         self.model.load_state_dict(checkpoint["state_dict"])
         self.optimizer.load_state_dict(checkpoint["checkpoint"])
         self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
@@ -50,7 +51,7 @@ class TrainValSolver(EvaluationSolver):
     def save_checkpoint(self) -> dict:
         checkpoint = {
             "epoch": self._epoch,
-            "total_train_iter": self._total_train_iter,
+            "total_iters": self._total_iter,
             "state_dict": self.model.state_dict(),
             "checkpoint": self.optimizer.state_dict(),
             "lr_scheduler": self.lr_scheduler.state_dict()

@@ -28,6 +28,7 @@ class EvaluationSolver(BaseSolver):
         model (torch.nn.Module): Model to train or eval.
         do_final_eval (bool): If True, collect all results according to metric_cfg
             and calculate metric values in the end. Default is False.
+        meta_keys (tuple or list, optional): Collect keys from input metas.
         eval_metric_cfg (dict, Sequence, optional): Metric function descriptor like
             {
                 "metric": dict(type="accuracy", topk=(1, )),
@@ -69,15 +70,14 @@ class EvaluationSolver(BaseSolver):
 
         # Enter evaluate mode
         self.eval_mode()
-        self._iter = 0
-        self._epoch_max_iter = len(val_data_loader)
+        self._epoch_max_iter[self._mode] = len(val_data_loader)
         self.before_all_iter()
         for data in val_data_loader:
             self.before_iter()
             data_gpu = transfer_data_to_cuda(data)
             result = self.model(**data_gpu)
 
-            self._iter_outputs = result
+            self._iter_outputs[self._mode] = result
 
             if self.do_final_eval:
                 # Collect data
@@ -118,7 +118,7 @@ class EvaluationSolver(BaseSolver):
             # Do final evaluate
             if rank == 0:
                 for metric in self.metrics:
-                    self.epoch_outputs.update(metric["fn"](*[concat_collect_data[key] for key in metric["keys"]]))
+                    self._epoch_outputs[self._mode].update(metric["fn"](*[concat_collect_data[key] for key in metric["keys"]]))
 
             # Save all data
             if self.save_eval_data and rank == 0:
