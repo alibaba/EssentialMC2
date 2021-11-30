@@ -68,13 +68,14 @@ class LogHook(Hook):
         self.log_interval = log_interval
         self.log_agg_dict = defaultdict(LogAgg)
 
-        self.last_log_step = "train-0"
+        self.last_log_step = ("train", 0)
 
         self.time = time.time()
         self.data_time = 0
 
     def before_all_iter(self, solver):
         self.time = time.time()
+        self.last_log_step = (solver.mode, 0)
 
     def before_iter(self, solver):
         data_time = time.time() - self.time
@@ -93,14 +94,14 @@ class LogHook(Hook):
             batch_size = 1
         log_agg.update(outputs, batch_size)
         if (solver.iter + 1) % self.log_interval == 0:
-            _print_iter_log(solver, log_agg.aggregate())
-            self.last_log_step = f"{solver.mode}-{solver.iter + 1}"
+            _print_iter_log(solver, log_agg.aggregate(self.log_interval))
+            self.last_log_step = (solver.mode, solver.iter + 1)
 
     def after_all_iter(self, solver):
-        current_log_step = f"{solver.mode}-{solver.iter}"
+        current_log_step = (solver.mode, solver.iter)
         if current_log_step != self.last_log_step:
             log_agg = self.log_agg_dict[solver.mode]
-            _print_iter_log(solver, log_agg.aggregate(), final=True)
+            _print_iter_log(solver, log_agg.aggregate(solver.iter - self.last_log_step[1]), final=True)
             self.last_log_step = current_log_step
 
         for _, value in self.log_agg_dict.items():

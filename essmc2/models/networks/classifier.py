@@ -77,24 +77,25 @@ class Classifier(TrainModule):
 
     def forward_train(self, img, gt_label=None):
         probs = self.head(self.neck(self.backbone(img)))
-        if gt_label is not None:
-            ret = OrderedDict()
-            loss = self.loss(probs, gt_label)
-            ret["loss"] = loss
-            ret["batch_size"] = img.size(0)
-            ret.update(self.metric(probs, gt_label))
-            return ret
+        if gt_label is None:
+            return probs
 
-        return self.act_fn(probs)
+        ret = OrderedDict()
+        loss = self.loss(probs, gt_label)
+        ret["loss"] = loss
+        ret["batch_size"] = img.size(0)
+        ret.update(self.metric(probs, gt_label))
+        return ret
 
     def forward_test(self, img, gt_label=None):
         logits = self.act_fn(self.head(self.neck(self.backbone(img))))
-        if gt_label is None:
-            return logits
-        ret = OrderedDict()
-        ret["logits"] = logits
-        ret.update(self.metric(logits, gt_label))
-        return ret
+        if gt_label is not None:
+            ret = OrderedDict()
+            ret["logits"] = logits
+            ret["batch_size"] = img.size(0)
+            ret.update(self.metric(logits, gt_label))
+            return ret
+        return logits
 
 
 @MODELS.register_class()

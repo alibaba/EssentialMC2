@@ -17,11 +17,12 @@ class AccuracyMetric(object):
         self.maxk = max(self.topk)
 
     @torch.no_grad()
-    def __call__(self, results, targets):
+    def __call__(self, results, targets, prefix="acc"):
         """ Compute Accuracy
         Args:
             results (torch.Tensor or numpy.ndarray):
             targets (torch.Tensor or numpy.ndarray):
+            prefix (str): Prefix string of ret key, default is acc.
 
         Returns:
             A OrderedDict, contains accuracy tensors according to topk.
@@ -43,7 +44,7 @@ class AccuracyMetric(object):
         res = OrderedDict()
         for k in self.topk:
             correct_k = corrects[:k].contiguous().view(-1).float().sum(0)
-            res[f"acc@{k}"] = correct_k.mul_(1.0 / batch_size)
+            res[f"{prefix}@{k}"] = correct_k.mul_(1.0 / batch_size)
         return res
 
 

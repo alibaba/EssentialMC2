@@ -47,7 +47,7 @@ class Select(object):
         if "meta" in item and len(self.meta_keys) > 0:
             data["meta"] = {}
             for key in self.meta_keys:
-                data["meta"][key] = item[key]
+                data["meta"][key] = item['meta'][key]
         return data
 
 

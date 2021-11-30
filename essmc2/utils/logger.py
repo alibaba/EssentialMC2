@@ -119,13 +119,16 @@ class LogAgg(object):
             ret[key] = avg
         return ret
 
-    def aggregate(self):
+    def aggregate(self, log_interval=1):
         """ Do aggregation with current step values and all mean values.
+
+        Args:
+            log_interval (int): Steps to aggregate current state, default is 1.
 
         Returns:
             A dict contains current step and all step mean values.
         """
-        cur = self._aggregate(1)
+        cur = self._aggregate(log_interval)
         all_mean = self._aggregate(0)
         ret = OrderedDict()
         for key in cur:

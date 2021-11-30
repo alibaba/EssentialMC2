@@ -8,7 +8,7 @@ import torch
 from .base_solver import BaseSolver
 from .registry import SOLVERS
 from ..utils.data import transfer_data_to_cuda, transfer_data_to_cpu
-from ..utils.distribute import gather_gpu_tensors
+from ..utils.distribute import gather_data
 from ..utils.distribute import get_dist_info
 from ..utils.file_systems import FS
 from ..utils.metrics import METRICS
@@ -42,6 +42,7 @@ class EvaluationSolver(BaseSolver):
                  model,
                  eval_interval=1,
                  do_final_eval=False,
+                 meta_keys=None,
                  eval_metric_cfg=None,
                  save_eval_data=False,
                  **kwargs):
@@ -49,8 +50,11 @@ class EvaluationSolver(BaseSolver):
 
         self.eval_interval = eval_interval
         self.metrics = []
-        self.collect_keys = set()
+        self.meta_keys = set(meta_keys or [])
+        self.metric_keys = set()
         self._build_metrics(eval_metric_cfg)
+        self.meta_keys = sorted(list(self.meta_keys))
+        self.metric_keys = sorted(list(self.metric_keys))
         self.do_final_eval = do_final_eval
         self.save_eval_data = save_eval_data
 
@@ -82,11 +86,15 @@ class EvaluationSolver(BaseSolver):
                 elif isinstance(result, dict):
                     data_gpu.update(result)
 
-                step_data = {key: data_gpu[key] for key in self.collect_keys}
+                step_data = {key: data_gpu[key] for key in self.metric_keys}
                 step_data = transfer_data_to_cpu(step_data)
 
                 for key, value in step_data.items():
                     collect_data[key].append(value.clone())
+
+                if len(self.meta_keys) > 0 and "meta" in data_gpu:
+                    for key in self.meta_keys:
+                        collect_data[key].append(data_gpu["meta"][key])
 
             self.after_iter()
         self.after_all_iter()
@@ -95,13 +103,17 @@ class EvaluationSolver(BaseSolver):
             # Concat collect_data
             concat_collect_data = OrderedDict()
             for key, tensors in collect_data.items():
-                concat_collect_data[key] = torch.cat(tensors)
+                if isinstance(tensors[0], torch.Tensor):
+                    concat_collect_data[key] = torch.cat(tensors)
+                elif isinstance(tensors[0], list):
+                    concat_collect_data[key] = sum(tensors, [])
+                else:
+                    concat_collect_data[key] = tensors
 
             # If distributed and use DistributedSampler
             # Gather all collect data to rank 0
             if world_size > 0 and type(val_data_loader.sampler) is torch.utils.data.DistributedSampler:
-                concat_collect_data = transfer_data_to_cuda(concat_collect_data)
-                concat_collect_data = {key: gather_gpu_tensors(tensor) for key, tensor in concat_collect_data.items()}
+                concat_collect_data = {key: gather_data(concat_collect_data[key]) for key in self.metric_keys + self.meta_keys}
 
             # Do final evaluate
             if rank == 0:
@@ -138,4 +150,4 @@ class EvaluationSolver(BaseSolver):
                 "fn": fn,
                 "keys": keys
             })
-            self.collect_keys.update(keys)
+            self.metric_keys.update(keys)

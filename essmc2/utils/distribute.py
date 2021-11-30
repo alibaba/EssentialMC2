@@ -1,5 +1,7 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
+from collections import OrderedDict
+
 import torch
 import torch.distributed as dist
 
@@ -18,8 +20,70 @@ def init_dist(backend='nccl', launcher="pytorch"):
         torch.cuda.set_device(rank)
 
 
+def gather_data(data):
+    if isinstance(data, torch.Tensor):
+        return gather_gpu_tensors(data)
+    elif isinstance(data, dict):
+        # Keep in order, dict type DO NOT guarantee a fixed key order
+        keys = sorted(list(data.keys()))
+        ret = OrderedDict()
+        for key in keys:
+            ret[key] = gather_data(data[key])
+        return ret
+    elif isinstance(data, list):
+        return gather_list(data)
+    else:
+        return gather_picklable(data)
+
+
+def gather_list(data):
+    rank, _ = get_dist_info()
+    list_of_list = gather_picklable(data)
+    if rank == 0:
+        return sum(list_of_list, [])
+
+
+def gather_picklable(data):
+    from packaging import version
+    from torch.version import __version__
+    if version.parse(__version__) < version.parse("1.8.0"):
+        return gather_picklable_custom(data)
+    else:
+        rank, world_size = get_dist_info()
+        obj_list = [None for _ in range(world_size)]
+        dist.all_gather_object(obj_list, data)
+        if rank == 0:
+            return obj_list
+
+
+def gather_picklable_custom(data):
+    import pickle
+    byte_tensor = torch.tensor(bytearray(pickle.dumps(data)), dtype=torch.uint8, device='cuda')
+    rank, world_size = get_dist_info()
+    shape_tensor = torch.tensor(byte_tensor.shape, device="cuda")
+    shape_list = [shape_tensor.clone() for _ in range(world_size)]
+    dist.all_gather(shape_list, shape_tensor)
+    shape_max = torch.tensor(shape_list).max()
+
+    tensor_send = torch.zeros(shape_max, dtype=byte_tensor.dtype, device="cuda")
+    tensor_send[0:shape_tensor[0]] = byte_tensor
+    tensor_list = [torch.zeros_like(tensor_send) for _ in range(world_size)]
+    dist.all_gather(tensor_list, tensor_send)
+
+    if rank == 0:
+        data_out = []
+        for tensor_recv, shape_recv in zip(tensor_list, shape_list):
+            new_data = pickle.loads(tensor_recv[:shape_recv[0]].cpu().numpy().tobytes())
+            data_out.append(new_data)
+        return data_out
+
+
 def gather_gpu_tensors(tensor):
     assert dist.get_backend() == "nccl"
+
+    device = tensor.device
+    if device.type == 'cpu':
+        tensor = tensor.cuda()
 
     rank, world_size = get_dist_info()
 
@@ -38,5 +102,6 @@ def gather_gpu_tensors(tensor):
         for tensor_recv, shape_recv in zip(tensor_list, shape_list):
             tensors_out.append(tensor_recv[0: shape_recv])
         tensor_out = torch.cat(tensors_out).contiguous()
+        if device.type == 'cpu':
+            tensor_out = tensor_out.cpu()
         return tensor_out
-    

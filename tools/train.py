@@ -127,7 +127,7 @@ def get_data(cfg, logger):
 
     if eval_dataset is not None:
         if cfg.dist.distributed:
-            eval_sampler = DistributedSampler(train_dataset, world_size, rank, shuffle=False)
+            eval_sampler = DistributedSampler(eval_dataset, world_size, rank, shuffle=False)
             collate_fn = partial(gpu_batch_collate, device_id=rank) \
                 if cfg.dist["dist_launcher"] == "pytorch" and use_gpu_preprocess else None
             eval_dataloader = DataLoader(
