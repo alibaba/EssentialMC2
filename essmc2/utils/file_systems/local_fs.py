@@ -1,9 +1,9 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+import logging
 import os
 
 from .base_fs import BaseFs
 from .registry import FILE_SYSTEMS
-import logging
 
 
 @FILE_SYSTEMS.register_class()
@@ -46,7 +46,3 @@ class LocalFs(BaseFs):
     def put_dir_from_local_dir(self, local_dir, target_dir):
         # Do not.
         return
-
-
-
-

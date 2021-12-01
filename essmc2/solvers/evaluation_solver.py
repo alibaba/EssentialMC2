@@ -113,12 +113,14 @@ class EvaluationSolver(BaseSolver):
             # If distributed and use DistributedSampler
             # Gather all collect data to rank 0
             if world_size > 0 and type(val_data_loader.sampler) is torch.utils.data.DistributedSampler:
-                concat_collect_data = {key: gather_data(concat_collect_data[key]) for key in self.metric_keys + self.meta_keys}
+                concat_collect_data = {key: gather_data(concat_collect_data[key]) for key in
+                                       self.metric_keys + self.meta_keys}
 
             # Do final evaluate
             if rank == 0:
                 for metric in self.metrics:
-                    self._epoch_outputs[self._mode].update(metric["fn"](*[concat_collect_data[key] for key in metric["keys"]]))
+                    self._epoch_outputs[self._mode].update(
+                        metric["fn"](*[concat_collect_data[key] for key in metric["keys"]]))
 
             # Save all data
             if self.save_eval_data and rank == 0:

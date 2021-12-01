@@ -1,3 +1,5 @@
+# Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+
 def check_dict_of_str_dict(input_dict, contains_type=False):
     """ Check input dict has typing Dict[str, dict]
 
@@ -22,6 +24,14 @@ def check_dict_of_str_dict(input_dict, contains_type=False):
 
 
 def check_seq_of_seq(input_list):
+    """ Check input list has typing (list, tuple)[(list, tuple)]
+
+    Args:
+        input_list (list): List to check.
+
+    Returns:
+        Bool.
+    """
     if not isinstance(input_list, (list, tuple)):
         return False
     if len(input_list) == 0:

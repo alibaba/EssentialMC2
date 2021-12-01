@@ -1,11 +1,11 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-from .base_video_dataset import BaseVideoDataset
-from ..registry import DATASETS
+import os.path as osp
+
 import numpy as np
 
-
-import os.path as osp
+from .base_video_dataset import BaseVideoDataset
+from ..registry import DATASETS
 
 HMDB51_LABELS = [
     "brush_hair", "cartwheel", "catch", "chew", "clap",
@@ -58,7 +58,7 @@ class Hmdb51(BaseVideoDataset):
         video_info = self._samples[index]
         return {
             "meta": {
-                "prefix": self.video_dir,
+                "prefix": self.data_root_dir,
                 "video_path": video_info["video_path"]
             },
             "gt_label": np.array(video_info["gt_label"], dtype=np.int64)

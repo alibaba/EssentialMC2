@@ -1,5 +1,4 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
-import numbers
 import os.path as osp
 import sys
 import warnings
@@ -37,7 +36,7 @@ class CheckpointHook(Hook):
         self.interval = interval
         self.save_best = save_best
         self.save_best_by = save_best_by
-        if not self.save_best_by:
+        if self.save_best and not self.save_best_by:
             warnings.warn("CheckpointHook: Parameter 'save_best_by' is not set, turn off save_best function.")
             self.save_best = False
         self.higher_the_best = True
@@ -47,8 +46,8 @@ class CheckpointHook(Hook):
             elif self.save_best_by.startswith("-"):
                 self.save_best_by = self.save_best_by[1:]
                 self.higher_the_best = False
-        if not self.save_best_by:
-            warnings.warn("CheckpointHook: Parameter 'save_best_by' is not set, turn off save_best function.")
+        if self.save_best and not self.save_best_by:
+            warnings.warn("CheckpointHook: Parameter 'save_best_by' is not valid, turn off save_best function.")
             self.save_best = False
         self._last_best = None if not self.save_best else (
             sys.float_info.min if self.higher_the_best else sys.float_info.max
@@ -107,4 +106,3 @@ class CheckpointHook(Hook):
                 if cur_is_best:
                     best_path = osp.join(solver.work_dir, f"best.pth")
                     client.make_link(best_path, save_path)
-

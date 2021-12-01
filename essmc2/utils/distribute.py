@@ -21,6 +21,15 @@ def init_dist(backend='nccl', launcher="pytorch"):
 
 
 def gather_data(data):
+    """ Gather tensors and other picklable objects to rank 0.
+    Will recursively walk through inner list and dict values.
+
+    Args:
+        data (any): Anything.
+
+    Returns:
+        A object has same structure with input `data`.
+    """
     if isinstance(data, torch.Tensor):
         return gather_gpu_tensors(data)
     elif isinstance(data, dict):
@@ -37,6 +46,15 @@ def gather_data(data):
 
 
 def gather_list(data):
+    """ Gather list of picklable objects to a new list on rank 0.
+    Will NOT recursively walk through.
+
+    Args:
+        data (list): List of picklable things.
+
+    Returns:
+        A new flat list.
+    """
     rank, _ = get_dist_info()
     list_of_list = gather_picklable(data)
     if rank == 0:
@@ -44,10 +62,19 @@ def gather_list(data):
 
 
 def gather_picklable(data):
+    """ Gather picklable object to a list on rank 0.
+    Will NOT recursively walk through.
+
+    Args:
+        data (picklable): Picklable data.
+
+    Returns:
+        A list contains data collected.
+    """
     from packaging import version
     from torch.version import __version__
     if version.parse(__version__) < version.parse("1.8.0"):
-        return gather_picklable_custom(data)
+        return _gather_picklable_custom(data)
     else:
         rank, world_size = get_dist_info()
         obj_list = [None for _ in range(world_size)]
@@ -56,7 +83,16 @@ def gather_picklable(data):
             return obj_list
 
 
-def gather_picklable_custom(data):
+def _gather_picklable_custom(data):
+    """ Custom implementation function to gather picklable object to a list on rank 0.
+    If torch version is lower than 1.8.0, use this.
+
+    Args:
+        data (picklable): Picklable data.
+
+    Returns:
+        A list contains data collected.
+    """
     import pickle
     byte_tensor = torch.tensor(bytearray(pickle.dumps(data)), dtype=torch.uint8, device='cuda')
     rank, world_size = get_dist_info()
@@ -79,6 +115,14 @@ def gather_picklable_custom(data):
 
 
 def gather_gpu_tensors(tensor):
+    """ Gather tensor to rank 0 and concat it.
+
+    Args:
+        tensor (torch.Tensor):
+
+    Returns:
+        A new tensor.
+    """
     assert dist.get_backend() == "nccl"
 
     device = tensor.device

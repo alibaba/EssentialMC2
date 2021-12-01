@@ -6,6 +6,15 @@ import torch
 
 
 def transfer_data_to_numpy(data_map: dict) -> dict:
+    """ Transfer tensors in data_map to numpy type.
+    Will recursively walk through inner list, tuple and dict values.
+
+    Args:
+        data_map (dict): a dictionary which contains tensors to be transferred
+
+    Returns:
+        A dict which has same structure with input `data_map`.
+    """
     if not isinstance(data_map, dict):
         return data_map
     ret = OrderedDict()
@@ -22,6 +31,15 @@ def transfer_data_to_numpy(data_map: dict) -> dict:
 
 
 def transfer_data_to_cpu(data_map: dict) -> dict:
+    """ Transfer tensors in data_map to cpu device.
+    Will recursively walk through inner list, tuple and dict values.
+
+    Args:
+        data_map (dict): a dictionary which contains tensors to be transferred
+
+    Returns:
+        A dict which has same structure with input `data_map`.
+    """
     if not isinstance(data_map, dict):
         return data_map
     ret = OrderedDict()
@@ -38,8 +56,8 @@ def transfer_data_to_cpu(data_map: dict) -> dict:
 
 
 def transfer_data_to_cuda(data_map: dict) -> dict:
-    """ Transfer tensors in data_map to current default gpu device
-    Only tensors in dict will be transferred, list or tuple type is not supported, even in dict.
+    """ Transfer tensors in data_map to current default gpu device.
+    Will recursively walk through inner list, tuple and dict values.
 
     Args:
         data_map (dict): a dictionary which contains tensors to be transferred

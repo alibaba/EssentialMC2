@@ -2,4 +2,4 @@
 
 from ..registry import Registry
 
-METRICS = Registry("METRICS", allow_types=("class", ))
+METRICS = Registry("METRICS", allow_types=("class",))

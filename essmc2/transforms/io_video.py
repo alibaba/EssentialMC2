@@ -7,8 +7,8 @@ import torch
 import torch.utils.dlpack as dlpack
 from decord import VideoReader
 
-from essmc2.transforms import TRANSFORMS
 from essmc2.utils.file_systems import FS
+from .registry import TRANSFORMS
 
 
 def _interval_based_sampling(vid_length, vid_fps, target_fps, clip_idx, num_clips, num_frames, interval,

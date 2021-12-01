@@ -17,7 +17,7 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
         AutoResizedCropVideo will crop a fixed position new clip in H*W dimension.
 
     Args:
-        video_dir (str): Location to load videos.
+        data_root_dir (str): Location to load videos.
         annotation_dir (str): Location to load annotations.
         temporal_crops (int): A video wound be split by time into temporal clips for ensemble, default is 1.
         spatial_crops (int): A temporal clip wound be cropped in space spatial crops times for ensemble, default is 1.
@@ -27,7 +27,7 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
     """
 
     def __init__(self,
-                 video_dir,
+                 data_root_dir,
                  annotation_dir,
                  temporal_crops=1,
                  spatial_crops=1,
@@ -35,7 +35,7 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
                  **kwargs):
         super(BaseVideoDataset, self).__init__(**kwargs)
 
-        self.video_dir = video_dir
+        self.data_root_dir = data_root_dir
         self.annotation_dir = annotation_dir
         self.temporal_crops = temporal_crops
         self.spatial_crops = spatial_crops

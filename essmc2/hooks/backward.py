@@ -1,4 +1,5 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+import warnings
 
 from .hook import Hook
 from .registry import HOOKS
@@ -14,8 +15,10 @@ class BackwardHook(Hook):
 
     def after_iter(self, solver):
         if solver.optimizer is not None \
-                and solver.is_train_mode \
-                and solver.loss is not None:
+                and solver.is_train_mode:
+            if solver.loss is None:
+                warnings.warn("solver.loss should not be None in train mode, remember to call solver._reduce_scalar()!")
+                return
             solver.optimizer.zero_grad()
             solver.loss.backward()
             solver.optimizer.step()

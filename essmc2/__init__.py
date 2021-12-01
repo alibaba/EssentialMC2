@@ -5,3 +5,4 @@ from .models import MODELS, BACKBONES, NECKS, HEADS
 from .solvers import SOLVERS
 from .utils.config import Config
 from .utils.logger import get_logger
+from .version import __version__

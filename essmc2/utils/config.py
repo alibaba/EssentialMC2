@@ -16,9 +16,9 @@
 # limitations under the License.
 import copy
 import inspect
+import json
 import os
 import sys
-import json
 from importlib import import_module
 
 from addict import Dict

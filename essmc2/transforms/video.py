@@ -204,6 +204,7 @@ class AutoResizedCropVideo(VideoTransform):
             before resizing. The scale is defined with respect to the area of the original image.
         interpolation (str): Desired interpolation string, 'bilinear', 'nearest', 'bicubic' are supported.
     """
+
     def __init__(self,
                  size,
                  scale=(0.08, 1.0),
@@ -278,6 +279,7 @@ class ResizeVideo(VideoTransform):
             If size is an int, the smaller edge of the image will be matched to this number maintaining the aspect ratio.
         interpolation (str): Desired interpolation string, 'bilinear', 'nearest', 'bicubic' are supported.
     """
+
     def __init__(self,
                  size,
                  interpolation_mode='bilinear',
@@ -302,11 +304,11 @@ class ResizeVideo(VideoTransform):
                 if (w <= h and w == self.size) or (h <= w and h == self.size):
                     return clip
                 if w < h:
-                    ow = size
-                    oh = int(size * h / w)
+                    ow = self.size
+                    oh = int(self.size * h / w)
                 else:
-                    oh = size
-                    ow = int(size * w / h)
+                    oh = self.size
+                    ow = int(self.size * w / h)
                 size = (oh, ow)
             else:
                 size = self.size

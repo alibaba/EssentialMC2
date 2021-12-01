@@ -1,7 +1,8 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-import torch.nn as nn
 from collections import OrderedDict
+
+import torch.nn as nn
 
 from ..registry import HEADS
 

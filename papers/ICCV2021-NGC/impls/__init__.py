@@ -1,14 +1,14 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-from .heads import NoisyContrastHead
-from .networks import NGCNetwork
+from .augmix import AugMix
 from .backbones import preresnet
-from .solvers import NGCSolver
 from .datasets.cifar_noisy_dataset import CifarNoisyDataset
 from .datasets.cifar_noisy_openset_dataset import CifarNoisyOpensetDataset
-from .datasets.webvision import Webvision
 from .datasets.imagenet import ImageNet
-from .augmix import AugMix
+from .datasets.webvision import Webvision
+from .heads import NoisyContrastHead
+from .networks import NGCNetwork
+from .solvers import NGCSolver
 
 DOC = "ICCV2021-NGC implementations"
 

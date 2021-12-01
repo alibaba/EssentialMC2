@@ -45,6 +45,7 @@ if INTERPOLATION_MODE_CAPABILITY:
     from torchvision.transforms.functional import InterpolationMode
 else:
     import warnings
+
     warnings.filterwarnings("ignore", message="Default upsampling behavior.*")
 INTERPOLATION_STYLE = {
     "bilinear": Image.BILINEAR if not INTERPOLATION_MODE_CAPABILITY else InterpolationMode("bilinear"),
