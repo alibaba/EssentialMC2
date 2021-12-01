@@ -101,3 +101,11 @@ class AliyunOssFs(BaseFs):
         self._init_bucket()
         oss_key = osp.relpath(logging_path, self.prefix)
         return OssLoggingHandler(self.bucket, oss_key)
+
+    def make_link(self, link_path, target_path):
+        self._init_bucket()
+        link_key = osp.relpath(link_path, self.prefix)
+        target_key = osp.relpath(target_path, self.prefix)
+        self.bucket.put_symlink(target_key, link_key)
+
+

@@ -66,3 +66,8 @@ class HttpFs(BaseFs):
 
     def get_logging_handler(self, logging_path):
         raise NotImplemented
+
+    def make_link(self, link_path, target_path):
+        raise NotImplemented
+
+
