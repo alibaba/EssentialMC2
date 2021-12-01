@@ -1,14 +1,18 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+import logging
+import os
 
 from .base_fs import BaseFs
 from .registry import FILE_SYSTEMS
-import logging
 
 
 @FILE_SYSTEMS.register_class()
 class LocalFs(BaseFs):
     def __init__(self):
         super(LocalFs, self).__init__()
+
+    def convert_to_local_path(self, target_path):
+        return target_path
 
     def get_object_to_local_file(self, path) -> str:
         return path
@@ -33,3 +37,12 @@ class LocalFs(BaseFs):
 
     def get_logging_handler(self, logging_path):
         return logging.FileHandler(logging_path)
+
+    def make_link(self, link_path, target_path):
+        if os.path.lexists(link_path):
+            os.remove(link_path)
+        os.symlink(target_path, link_path)
+
+    def put_dir_from_local_dir(self, local_dir, target_dir):
+        # Do not.
+        return

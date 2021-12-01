@@ -66,8 +66,6 @@ def get_model(cfg, logger):
     if cfg.dist.distributed:
         model = DistributedDataParallel(model,
                                         device_ids=[torch.cuda.current_device()])
-    else:
-        model = DataParallel(model)
     return model
 
 
@@ -125,19 +123,35 @@ def get_data(cfg, logger):
             num_workers=cfg.data['train']['workers_per_gpu'],
             pin_memory=pin_memory,
         )
-    logger.info(f"Built train dataloader {len(train_dataloader)}")
+    logger.info(f"Built train dataloader with len {len(train_dataloader)}")
 
     if eval_dataset is not None:
-        eval_dataloader = DataLoader(
-            eval_dataset,
-            batch_size=cfg.data['eval']['samples_per_gpu'],
-            shuffle=False,
-            sampler=None,
-            num_workers=cfg.data['eval']['workers_per_gpu'],
-            pin_memory=pin_memory,
-            drop_last=False
-        )
-        logger.info(f"Built eval dataloader {len(eval_dataloader)}")
+        if cfg.dist.distributed:
+            eval_sampler = DistributedSampler(eval_dataset, world_size, rank, shuffle=False)
+            collate_fn = partial(gpu_batch_collate, device_id=rank) \
+                if cfg.dist["dist_launcher"] == "pytorch" and use_gpu_preprocess else None
+            eval_dataloader = DataLoader(
+                eval_dataset,
+                batch_size=cfg.data['eval']['samples_per_gpu'],
+                shuffle=False,
+                sampler=eval_sampler,
+                num_workers=cfg.data['eval']['workers_per_gpu'],
+                pin_memory=pin_memory,
+                drop_last=False,
+                collate_fn=collate_fn
+            )
+        else:
+            eval_dataloader = DataLoader(
+                eval_dataset,
+                batch_size=cfg.data['eval']['samples_per_gpu'],
+                shuffle=False,
+                sampler=None,
+                num_workers=cfg.data['eval']['workers_per_gpu'],
+                pin_memory=pin_memory,
+                drop_last=False
+            )
+
+        logger.info(f"Built eval dataloader with len {len(eval_dataloader)}")
 
     else:
         eval_dataloader = None
@@ -244,9 +258,9 @@ def main():
     logger.info(f"Built model: \n{model}")
 
     # Load Dataset
-    logger.info(f"Building dataset...")
+    logger.info(f"Building data...")
     data = get_data(cfg, logger)
-    logger.info(f"Built dataset: \n{data}")
+    logger.info(f"Built data: {list(data.keys())}")
 
     # Load Solver
     logger.info("Building solver...")

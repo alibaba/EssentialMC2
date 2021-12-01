@@ -1,7 +1,8 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-import torch.nn as nn
 from collections import OrderedDict
+
+import torch.nn as nn
 
 from ..registry import HEADS
 
@@ -71,7 +72,7 @@ class VideoClassifierHeadx2(nn.Module):
         out1 = self.linear1(out)
         out2 = self.linear2(out)
 
-        return out1, out2, x
+        return out1, out2
 
 
 @HEADS.register_class()

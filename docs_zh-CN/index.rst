@@ -11,11 +11,15 @@
 .. toctree::
     :maxdepth: 2
     :caption: 教程
-    tutuorials/finetune.md
-    tutuorials/custom.md
 
+    tutorials/finetune.md
+    tutorials/custom.md
 
+.. toctree::
+    :maxdepth: 2
+    :caption: 使用建议
 
+    tutorials/model_construct.md
 
 索引与表格
 ==================

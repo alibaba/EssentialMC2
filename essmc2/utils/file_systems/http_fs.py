@@ -1,9 +1,9 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
+import datetime
 import os
 import os.path as osp
 import random
-import datetime
 import tempfile
 import urllib.parse as parse
 import urllib.request as request
@@ -26,7 +26,8 @@ class HttpFs(BaseFs):
 
     def get_object_to_local_file(self, path) -> str:
         basename = _get_http_url_basename(path)
-        randname = '{0:%Y%m%d%H%M%S%f}'.format(datetime.datetime.now())+''.join([str(random.randint(1,10)) for i in range(5)])
+        randname = '{0:%Y%m%d%H%M%S%f}'.format(datetime.datetime.now()) + ''.join(
+            [str(random.randint(1, 10)) for i in range(5)])
         tmp_file = osp.join(tempfile.gettempdir(), randname + '_' + basename)
         retry = 0
         while retry < self.retry_times:
@@ -65,4 +66,10 @@ class HttpFs(BaseFs):
         return False
 
     def get_logging_handler(self, logging_path):
+        raise NotImplemented
+
+    def make_link(self, link_path, target_path):
+        raise NotImplemented
+
+    def put_dir_from_local_dir(self, local_dir, target_dir):
         raise NotImplemented

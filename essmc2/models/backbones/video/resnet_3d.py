@@ -5,8 +5,8 @@ import torch.nn as nn
 from essmc2.models.registry import BACKBONES, STEMS, BRICKS
 from essmc2.utils.logger import get_logger
 from essmc2.utils.model import load_pretrained
-from .init_helper import _init_convnet_weights
 from .bricks.non_local import NonLocal
+from .init_helper import _init_convnet_weights
 
 _n_conv_resnet = {
     10: (1, 1, 1, 1),

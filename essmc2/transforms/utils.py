@@ -43,6 +43,10 @@ BACKEND_CV2 = "cv2"
 INTERPOLATION_MODE_CAPABILITY = version.parse(tv_version) >= version.parse("0.9.0")
 if INTERPOLATION_MODE_CAPABILITY:
     from torchvision.transforms.functional import InterpolationMode
+else:
+    import warnings
+
+    warnings.filterwarnings("ignore", message="Default upsampling behavior.*")
 INTERPOLATION_STYLE = {
     "bilinear": Image.BILINEAR if not INTERPOLATION_MODE_CAPABILITY else InterpolationMode("bilinear"),
     "nearest": Image.NEAREST if not INTERPOLATION_MODE_CAPABILITY else InterpolationMode("nearest"),

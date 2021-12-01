@@ -1,8 +1,9 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-import torch.nn as nn
 import os
+
 import matplotlib.pyplot as plt
+import torch.nn as nn
 
 
 class Visualize3DModule(nn.Module):

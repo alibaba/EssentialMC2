@@ -116,6 +116,7 @@ class Resize(ImageTransform):
             If size is an int, the smaller edge of the image will be matched to this number maintaining the aspect ratio.
         interpolation (str): Desired interpolation string, 'bilinear', 'nearest', 'bicubic' are supported.
     """
+
     def __init__(self, size, interpolation='bilinear', **kwargs):
         super(Resize, self).__init__(**kwargs)
         assert self.backend in BACKENDS
@@ -146,6 +147,7 @@ class CenterCrop(ImageTransform):
             If size is a sequence like (h, w), the output size will be matched to this.
             If size is an int, the output size will be matched to (size, size).
     """
+
     def __init__(self, size, **kwargs):
         super(CenterCrop, self).__init__(**kwargs)
         assert self.backend in BACKENDS
@@ -168,6 +170,7 @@ class RandomHorizontalFlip(ImageTransform):
     Args:
         p (float): probability of the image being flipped. Default value is 0.5
     """
+
     def __init__(self, p=0.5, **kwargs):
         super(RandomHorizontalFlip, self).__init__(**kwargs)
         assert self.backend in BACKENDS
@@ -189,6 +192,7 @@ class Normalize(ImageTransform):
         mean (sequence): Sequence of means for each channel.
         std (sequence): Sequence of standard deviations for each channel.
     """
+
     def __init__(self, mean, std, **kwargs):
         super(Normalize, self).__init__(**kwargs)
         assert self.backend in BACKENDS
@@ -208,6 +212,7 @@ class ImageToTensor(ImageTransform):
     """ Convert a ``PIL Image`` or ``numpy.ndarray`` or uint8 type tensor to a float32 tensor,
     and scale output to [0.0, 1.0].
     """
+
     def __init__(self, **kwargs):
         super(ImageToTensor, self).__init__(**kwargs)
         assert self.backend in BACKENDS
