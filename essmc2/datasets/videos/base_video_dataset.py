@@ -1,14 +1,20 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-import os.path as osp
 from abc import abstractmethod, ABCMeta
 
 from essmc2.datasets import BaseDataset
-from essmc2.utils.file_systems import FS
 
 
 class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
     """ BaseVideoDataset Interface.
+
+    In train mode,
+        DecodeVideoToTensor will sample a clip from video randomly with `clip_id` and `num_clips` in T dimension.
+        RandomResizedCropVideo will randomly crop a new clip from clip in H*W dimension with `spatial_id`.
+
+    In test model, with given `clip_id`, `num_clips` and `spatial_id`,
+        DecodeVideoToTensor will sample a fixed clip from video in T dimension.
+        AutoResizedCropVideo will crop a fixed position new clip in H*W dimension.
 
     Args:
         data_root_dir (str): Location to load videos.
@@ -33,52 +39,23 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
         self.annotation_dir = annotation_dir
         self.temporal_crops = temporal_crops
         self.spatial_crops = spatial_crops
-        self.num_clips = self.temporal_crops * self.spatial_crops
+        self.total_clips = self.temporal_crops * self.spatial_crops
         self.fix_len = fix_len
         self._samples = []
         self._spatial_temporal_index = []
 
-        self._construct_dataset()
-
-    def _construct_dataset(self):
-        dataset_list_name = self._get_dataset_list_name()
-
-        file_path = osp.join(self.annotation_dir, dataset_list_name)
-
-        with FS.get_fs_client(file_path) as client:
-            local_file = client.get_object_to_local_file(file_path)
-            if local_file[-4:] == ".csv":
-                import pandas
-                lines = pandas.read_csv(local_file)
-                for line in lines.values.tolist():
-                    self._samples.append(line)
-            elif local_file[-4:] == "json":
-                import json
-                with open(local_file, "r") as f:
-                    lines = json.load(f)
-                for line in lines:
-                    self._samples.append(line)
-            else:
-                with open(local_file) as f:
-                    lines = f.readlines()
-                    for line in lines:
-                        self._samples.append(line.strip())
+        self._get_samples()
 
     @abstractmethod
-    def _get_dataset_list_name(self):
-        """
-        Returns the list for the dataset.
-        Returns:
-            name (str): name of the list to be read
-        """
+    def _get_samples(self):
         raise NotImplementedError
 
     def __getitem__(self, index: int):
         # For each new worker, init file system now.
         self._mp_init_fs()
 
-        actual_index = index // self.num_clips
-        tmp = index - actual_index * self.num_clips
+        actual_index = index // self.total_clips
+        tmp = index - actual_index * self.total_clips
         if self.mode == "train":
             clip_id = -1
             spatial_id = 0
@@ -99,5 +76,5 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
 
     def __len__(self):
         if self.fix_len is not None:
-            return self.fix_len * self.num_clips
-        return len(self._samples) * self.num_clips
+            return self.fix_len * self.total_clips
+        return len(self._samples) * self.total_clips

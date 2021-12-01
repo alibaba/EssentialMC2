@@ -1,7 +1,10 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+import warnings
+
 
 def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k
+    """Computes the precision@k for the specified values of k.
+    Deprecated.
 
     Args:
         output (torch.Tensor): Normally, output is classifier logits output with size (N, C),
@@ -12,6 +15,8 @@ def accuracy(output, target, topk=(1,)):
     Returns:
         A list contains accuracy scalar tensor by topk
     """
+    warnings.warn("essmc2.utils.metric.accuracy function is deprecated. "
+                  "Use essmc2.utils.metrics.AccuracyMetric instead.")
     if isinstance(topk, int):
         topk = (topk,)
     maxk = max(topk)

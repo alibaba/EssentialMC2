@@ -57,11 +57,13 @@ class NGCSolver(BaseSolver):
             data["gt_label"] = gt_label
             data["clean_flag"] = clean_flag
             data_cuda = transfer_data_to_cuda(data)
-            self._iter_outputs = self.model(**data_cuda, do_aug=self.do_aug, pseudo=True,
-                                            temperature=self.temperature)
+            result = self.model(**data_cuda, do_aug=self.do_aug, pseudo=True,
+                                temperature=self.temperature)
         else:
             data_cuda = transfer_data_to_cuda(data)
-            self._iter_outputs = self.model(**data_cuda, do_aug=self.do_aug, pseudo=False)
+            result = self.model(**data_cuda, do_aug=self.do_aug, pseudo=False)
+
+        self._iter_outputs[self._mode] = self._reduce_scalar(result)
 
         self.after_iter()
 
@@ -112,7 +114,7 @@ class NGCSolver(BaseSolver):
         self.logger.info(f"Epoch [{self._epoch}/{self.max_epochs}], begin to train model...")
         self.train_mode()
         self.logger.info(f"Begin Train at {self._epoch}...")
-        self._epoch_max_iter = len(data_loaders['train'])
+        self._epoch_max_iter[self._mode] = len(data_loaders['train'])
         self.before_all_iter()
         for data in data_loaders['train']:
             self.train_step(data)
@@ -244,18 +246,18 @@ class NGCSolver(BaseSolver):
 
             effective_noise = 1 - 1.0 * (self.hard_labels[clean_ids_backup] == clean_label[
                 clean_ids_backup]).sum() / clean_ids_backup.sum()
-            self.epoch_outputs["effective_noise"] = effective_noise.item()
+            self._epoch_outputs["label_clean"]["effective_noise"] = effective_noise.item()
             self.logger.info(f"Confidence-based Selection: effective_noise={effective_noise.item()}")
             effective_noise_lcc = 1 - 1.0 * (
                     self.hard_labels[self.clean_ids] == clean_label[self.clean_ids]).sum() / self.clean_ids.sum()
-            self.epoch_outputs["effective_noise_lcc"] = effective_noise_lcc.item()
+            self.epoch_outputs["label_clean"]["effective_noise_lcc"] = effective_noise_lcc.item()
             self.logger.info(f"Geometry-based Selection: effective_noise_lcc={effective_noise_lcc.item()}")
             if self.openset:
                 ood_noise = torch.sum(clean_label[clean_ids_backup] == -1).item()
-                self.epoch_outputs["ood_noise"] = ood_noise
+                self.epoch_outputs["label_clean"]["ood_noise"] = ood_noise
                 self.logger.info(f"Confidence-based Selection: ood_noise={ood_noise}")
                 ood_noise_lcc = torch.sum(clean_label[self.clean_ids] == -1).item()
-                self.epoch_outputs["ood_noise_lcc"] = ood_noise_lcc
+                self.epoch_outputs["label_clean"]["ood_noise_lcc"] = ood_noise_lcc
                 self.logger.info(f"Geometry-based Selection: ood_noise_lcc={ood_noise_lcc}")
 
     def test(self, test_dataloader, imagenet_dataloader=None):
@@ -289,7 +291,7 @@ class NGCSolver(BaseSolver):
             accuracy_list = acc_meter.value()
             for n, acc in zip(topk, accuracy_list):
                 self.logger.info(f"Test: test_accuracy@{n}: {acc}")
-                self.epoch_outputs[f"test_accuracy@{n}"] = acc
+                self._epoch_outputs["test"][f"test_accuracy@{n}"] = acc
 
         if test_auroc and self.epoch >= self.warmup_epoch:
             features = torch.cat(features, dim=0)
@@ -320,11 +322,12 @@ class NGCSolver(BaseSolver):
                 accuracy_list = acc_meter.value()
                 for n, acc in zip(topk, accuracy_list):
                     self.logger.info(f"Test imagenet: test_accuracy@{n}: {acc}")
-                    self.epoch_outputs[f"imagenet_test_accuracy@{n}"] = acc
+                    self._epoch_outputs["test"][f"imagenet_test_accuracy@{n}"] = acc
 
     def load_checkpoint(self, checkpoint: dict):
         self._epoch = checkpoint["epoch"]
-        self._total_train_iter = checkpoint["total_train_iter"]
+        for mode_name, iter_value in checkpoint["total_iter"].items():
+            self._total_iter[mode_name] = iter_value
         load_pretrained_dict(self.model, checkpoint["state_dict"], self.logger)
         self.optimizer.load_state_dict(checkpoint["checkpoint"])
         self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
@@ -339,7 +342,7 @@ class NGCSolver(BaseSolver):
     def save_checkpoint(self) -> dict:
         checkpoint = {
             "epoch": self._epoch,
-            "total_train_iter": self._total_train_iter,
+            "total_iter": self._total_iter,
             "state_dict": self.model.state_dict(),
             "checkpoint": self.optimizer.state_dict(),
             "lr_scheduler": self.lr_scheduler.state_dict(),

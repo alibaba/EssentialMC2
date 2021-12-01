@@ -34,16 +34,20 @@ class ToTensor(object):
 
 @TRANSFORMS.register_class()
 class Select(object):
-    def __init__(self, keys):
+    def __init__(self, keys, meta_keys=()):
         self.keys = keys
-        self.store_keys = ["meta"]
+        if not isinstance(meta_keys, (list, tuple)):
+            raise TypeError(f"Expected meta_keys to be list or tuple, got {type(meta_keys)}")
+        self.meta_keys = meta_keys
 
     def __call__(self, item):
         data = {}
         for key in self.keys:
             data[key] = item[key]
-        for key in self.store_keys:
-            data[key] = item[key]
+        if "meta" in item and len(self.meta_keys) > 0:
+            data["meta"] = {}
+            for key in self.meta_keys:
+                data["meta"][key] = item['meta'][key]
         return data
 
 

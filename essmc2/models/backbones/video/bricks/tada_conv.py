@@ -1,15 +1,15 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
+import collections
 import math
+from itertools import repeat
 
-import torch.nn as nn
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 from essmc2.models.registry import BRICKS
 from .base_branch import BaseBranch
-import collections
-from itertools import repeat
 
 
 def _ntuple(n):

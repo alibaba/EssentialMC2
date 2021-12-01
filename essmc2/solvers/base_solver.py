@@ -1,15 +1,16 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
 from abc import abstractmethod, ABCMeta
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 import torch
 
 from essmc2.hooks import HOOKS
+from essmc2.utils.distribute import dist
 from essmc2.utils.logger import get_logger
+from essmc2.utils.typing import check_dict_of_str_dict
 from ..lr_schedulers import LR_SCHEDULERS
 from ..optimizers import OPTIMIZERS
-from essmc2.utils.typing import check_dict_of_str_dict
 
 
 class BaseSolver(object, metaclass=ABCMeta):
@@ -47,26 +48,28 @@ class BaseSolver(object, metaclass=ABCMeta):
         self.logger = logger or get_logger()
         self.envs = envs or {}
         self.max_epochs = max_epochs
-        self.num_folds = num_folds
-        self._epoch = 0
-        self._epoch_max_iter = 0
-        self._iter = 0
-        self._total_train_iter = 0
-        self._total_eval_iter = 0
-        self._total_test_iter = 0
-        self._iter_outputs = dict()
-        self._epoch_outputs = dict()
-        self._mode = 'train'  # current mode, 'train' or 'val'
+        self._num_folds = num_folds
+        self._epoch: int = 0
+        # epoch_max_iter, iter, total_iter, iter_outputs, epoch_outputs
+        # values is different according to self._mode
+        self._epoch_max_iter: defaultdict = defaultdict(int)
+        self._iter: defaultdict = defaultdict(int)
+        self._total_iter: defaultdict = defaultdict(int)
+        self._iter_outputs = defaultdict(dict)
+        self._agg_iter_outputs = defaultdict(dict)
+        self._epoch_outputs = defaultdict(dict)
+        self._mode: str = 'train'  # current mode, 'train' 'eval' 'test' ...
         self._hooks = []
         self._load_hook(hooks)
         self.data_loaders = {}
+        self.loss = None  # loss tensor
 
     def solve(self, data_loaders):
         # get a reference to data for hooks to use
         self.data_loaders = data_loaders
         self.before_solve()
         while self._epoch < self.max_epochs:
-            self.logger.info(f"Begin to solve epoch [{self._epoch}/{self.max_epochs}]...")
+            self.logger.info(f"Begin to solve at Epoch [{self._epoch}/{self.max_epochs}]...")
             self.before_epoch()
             self.run_epoch(data_loaders)
             self.after_epoch()
@@ -85,11 +88,6 @@ class BaseSolver(object, metaclass=ABCMeta):
     def before_epoch(self, *args, **kwargs):
         [t.before_epoch(self) for t in self._hooks]
 
-    def after_epoch(self, *args, **kwargs):
-        [t.after_epoch(self) for t in self._hooks]
-        self._epoch += self.num_folds
-        self._iter = 0
-
     def before_all_iter(self):
         [t.before_all_iter(self) for t in self._hooks]
 
@@ -98,17 +96,18 @@ class BaseSolver(object, metaclass=ABCMeta):
 
     def after_iter(self, *args, **kwargs):
         [t.after_iter(self) for t in self._hooks]
-        if self.is_train_mode:
-            self._total_train_iter += 1
-        elif self.is_eval_mode:
-            self._total_eval_iter += 1
-        else:
-            self._total_test_iter += 1
-
-        self._iter += 1
+        self._total_iter[self._mode] += 1
+        self._iter[self._mode] += 1
 
     def after_all_iter(self, *args, **kwargs):
         [t.after_all_iter(self) for t in self._hooks]
+
+    def after_epoch(self, *args, **kwargs):
+        [t.after_epoch(self) for t in self._hooks]
+        self._epoch += self._num_folds
+        self._iter.clear()
+        self._iter_outputs.clear()
+        self._epoch_outputs.clear()
 
     def collect_log_vars(self) -> OrderedDict:
         ret = OrderedDict()
@@ -135,7 +134,11 @@ class BaseSolver(object, metaclass=ABCMeta):
         pass
 
     @property
-    def epoch(self):
+    def num_folds(self) -> int:
+        return self._num_folds
+
+    @property
+    def epoch(self) -> int:
         return self._epoch
 
     @epoch.setter
@@ -143,48 +146,36 @@ class BaseSolver(object, metaclass=ABCMeta):
         self._epoch = new_epoch
 
     @property
-    def iter(self):
-        return self._iter
-
-    @iter.setter
-    def iter(self, new_iter):
-        self._iter = new_iter
+    def iter(self) -> int:
+        return self._iter[self._mode]
 
     @property
-    def total_train_iter(self):
-        return self._total_train_iter
+    def total_iter(self) -> int:
+        return self._total_iter[self._mode]
 
     @property
-    def total_eval_iter(self):
-        return self._total_eval_iter
+    def epoch_max_iter(self) -> int:
+        return self._epoch_max_iter[self._mode]
 
     @property
-    def total_test_iter(self):
-        return self._total_test_iter
-
-    @property
-    def total_iter(self):
-        if self.mode == "train":
-            return self.total_train_iter
-        elif self.mode == "eval":
-            return self.total_eval_iter
-        else:
-            return self.total_test_iter
-
-    @property
-    def epoch_max_iter(self):
-        return self._epoch_max_iter
-
-    @property
-    def mode(self):
+    def mode(self) -> str:
         return self._mode
 
     @property
-    def iter_outputs(self):
-        return self._iter_outputs
+    def iter_outputs(self) -> dict:
+        return self._iter_outputs[self._mode]
 
     @property
-    def epoch_outputs(self):
+    def agg_iter_outputs(self) -> dict:
+        return self._agg_iter_outputs
+
+    @agg_iter_outputs.setter
+    def agg_iter_outputs(self, new_outputs):
+        assert type(new_outputs) is dict
+        self._agg_iter_outputs[self._mode] = new_outputs
+
+    @property
+    def epoch_outputs(self) -> dict:
         return self._epoch_outputs
 
     @property
@@ -236,3 +227,36 @@ class BaseSolver(object, metaclass=ABCMeta):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}"
+
+    def _reduce_scalar(self, data_dict: dict):
+        """ Only reduce all scalar tensor values if distributed.
+        Any way, loss tensor will be specially processed just in case.
+
+        Args:
+            data_dict: Dict result returned by model.
+
+        Returns:
+            A new data dict whose tensor scalar values is all-reduced.
+
+        """
+        if "loss" in data_dict:
+            self.loss = data_dict["loss"]
+            data_dict["loss"] = self.loss.data.clone()
+
+        if isinstance(data_dict, OrderedDict):
+            keys = data_dict.keys()
+        else:
+            keys = sorted(list(data_dict.keys()))
+
+        ret = OrderedDict()
+        for key in keys:
+            value = data_dict[key]
+            if isinstance(value, torch.Tensor) and value.ndim == 0:
+                if dist.is_available() and dist.is_initialized():
+                    value = value.data.clone()
+                    dist.all_reduce(value.div_(dist.get_world_size()))
+                ret[key] = value
+            else:
+                ret[key] = value
+
+        return ret

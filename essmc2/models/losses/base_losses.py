@@ -1,6 +1,8 @@
-from ..registry import LOSSES
+# Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
 import torch
+
+from ..registry import LOSSES
 
 
 @LOSSES.register_function("CrossEntropy")

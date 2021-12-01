@@ -1,7 +1,7 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-import os.path as osp
 import os
+import os.path as osp
 
 import numpy as np
 

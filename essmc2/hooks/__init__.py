@@ -5,8 +5,8 @@ from .checkpoint import CheckpointHook
 from .hook import Hook
 from .log import LogHook, TensorboardLogHook
 from .lr import LrHook
-from .sampler import DistSamplerHook
 from .registry import HOOKS
+from .sampler import DistSamplerHook
 
 """
 Normally, hooks have priorities, below we recommend priority that runs fine (low score MEANS high priority)

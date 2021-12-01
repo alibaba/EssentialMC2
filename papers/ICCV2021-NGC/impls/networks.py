@@ -1,5 +1,7 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
+from collections import OrderedDict
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -10,7 +12,6 @@ from essmc2.models.registry import MODELS, BACKBONES, NECKS, HEADS
 from essmc2.utils.logger import get_logger
 from essmc2.utils.metric import accuracy
 from essmc2.utils.model import load_pretrained
-from collections import OrderedDict
 
 
 class NGCInference(nn.Module):

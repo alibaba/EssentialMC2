@@ -1,9 +1,10 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-from distutils.core import setup, Extension
-import pybind11
-import platform
 import os
+import platform
+from distutils.core import setup, Extension
+
+import pybind11
 
 if platform.system() == "Darwin":
     cpp_args = ['-std=c++11', '-stdlib=libc++', '-O3']

@@ -1,7 +1,8 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-from ..utils.registry import Registry
 import torch.optim.lr_scheduler as lr_mod
+
+from ..utils.registry import Registry
 
 SUPPORT_TYPES = (
     'StepLR', 'CyclicLR', 'LambdaLR', 'MultiStepLR', 'ExponentialLR', 'CosineAnnealingLR',
