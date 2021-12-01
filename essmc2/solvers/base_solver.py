@@ -6,10 +6,11 @@ from collections import OrderedDict, defaultdict
 import torch
 
 from essmc2.hooks import HOOKS
+from essmc2.utils.distribute import dist
 from essmc2.utils.logger import get_logger
+from essmc2.utils.typing import check_dict_of_str_dict
 from ..lr_schedulers import LR_SCHEDULERS
 from ..optimizers import OPTIMIZERS
-from essmc2.utils.typing import check_dict_of_str_dict
 
 
 class BaseSolver(object, metaclass=ABCMeta):
@@ -61,6 +62,7 @@ class BaseSolver(object, metaclass=ABCMeta):
         self._hooks = []
         self._load_hook(hooks)
         self.data_loaders = {}
+        self.loss = None  # loss tensor
 
     def solve(self, data_loaders):
         # get a reference to data for hooks to use
@@ -225,3 +227,36 @@ class BaseSolver(object, metaclass=ABCMeta):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}"
+
+    def _reduce_scalar(self, data_dict: dict):
+        """ Only reduce all scalar tensor values if distributed.
+        Any way, loss tensor will be specially processed just in case.
+
+        Args:
+            data_dict: Dict result returned by model.
+
+        Returns:
+            A new data dict whose tensor scalar values is all-reduced.
+
+        """
+        if "loss" in data_dict:
+            self.loss = data_dict["loss"]
+            data_dict["loss"] = self.loss.data.clone()
+
+        if isinstance(data_dict, OrderedDict):
+            keys = data_dict.keys()
+        else:
+            keys = sorted(list(data_dict.keys()))
+
+        ret = OrderedDict()
+        for key in keys:
+            value = data_dict[key]
+            if isinstance(value, torch.Tensor) and value.ndim == 0:
+                if dist.is_available() and dist.is_initialized():
+                    value = value.data.clone()
+                    dist.all_reduce(value.div_(dist.get_world_size()))
+                ret[key] = value
+            else:
+                ret[key] = value
+
+        return ret

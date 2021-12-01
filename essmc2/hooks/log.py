@@ -1,6 +1,7 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
 import numbers
+import os
 import os.path as osp
 import time
 from collections import defaultdict
@@ -13,13 +14,14 @@ from torch.utils.tensorboard import SummaryWriter
 
 from .hook import Hook
 from .registry import HOOKS
+from ..utils.file_systems import FS, LocalFs
 from ..utils.logger import LogAgg
 
 _DEFAULT_LOG_PRIORITY = 100
 
 
 def _format_float(x):
-    if abs(x) < 0.01:
+    if abs(x) - int(abs(x)) < 0.01:
         return "{:.6f}".format(x)
     else:
         return "{:.4f}".format(x)
@@ -31,7 +33,7 @@ def _print_v(x):
     elif isinstance(x, torch.Tensor) and x.ndim == 0:
         return _print_v(x.item())
     else:
-        return f"{x}"   
+        return f"{x}"
 
 
 def _print_iter_log(solver, outputs, final=False):
@@ -138,6 +140,7 @@ class TensorboardLogHook(Hook):
         priority = kwargs.pop("priority") if "priority" in kwargs else _DEFAULT_LOG_PRIORITY
         super(TensorboardLogHook, self).__init__(priority=priority)
         self.log_dir = log_dir
+        self._local_log_dir = None
         self.writer: Optional[SummaryWriter] = None
 
     def before_solve(self, solver):
@@ -145,16 +148,16 @@ class TensorboardLogHook(Hook):
             return
 
         if self.log_dir is None:
-            i = 0
-            while True:
-                log_dir = osp.join(solver.work_dir, "tf_logs" if i == 0 else f"tf_logs-{i}")
-                if osp.exists(log_dir):
-                    i += 1
-                    continue
-                else:
-                    break
-            self.log_dir = log_dir
-        self.writer = SummaryWriter(self.log_dir)
+            self.log_dir = osp.join(solver.work_dir, "tensorboard")
+        tb_client = FS.get_fs_client(self.log_dir)
+
+        if type(tb_client) is LocalFs:
+            self.writer = SummaryWriter(self.log_dir)
+        else:
+            local_tb_dir = tb_client.convert_to_local_path(self.log_dir)
+            os.makedirs(local_tb_dir, exist_ok=True)
+            self._local_log_dir = local_tb_dir
+            self.writer = SummaryWriter(self._local_log_dir)
         solver.logger.info(f"Tensorboard: save to {self.log_dir}")
 
     def after_iter(self, solver):
@@ -165,13 +168,12 @@ class TensorboardLogHook(Hook):
         outputs.update(extra_vars)
         mode = solver.mode
         for key, value in outputs.items():
+            if key == "batch_size":
+                continue
             if isinstance(value, torch.Tensor):
                 # Must be scalar
                 if not value.ndim == 0:
                     continue
-                if du.is_available() and du.is_initialized():
-                    value = value.data.clone()
-                    du.all_reduce(value.div_(du.get_world_size()))
                 value = value.item()
             elif isinstance(value, np.ndarray):
                 # Must be scalar
@@ -194,8 +196,18 @@ class TensorboardLogHook(Hook):
             for key, value in kvs.items():
                 self.writer.add_scalar(f"{mode}/epoch/{key}", value, global_step=solver.epoch)
 
+        self.writer.flush()
+        # Put to remote file systems every epoch
+        tb_client = FS.get_fs_client(self.log_dir)
+        if type(tb_client) is not LocalFs and self._local_log_dir is not None:
+            tb_client.put_dir_from_local_dir(self._local_log_dir, self.log_dir)
+
     def after_solve(self, solver):
         if self.writer is None:
             return
         if self.writer:
             self.writer.close()
+
+        tb_client = FS.get_fs_client(self.log_dir)
+        if type(tb_client) is not LocalFs and self._local_log_dir is not None:
+            tb_client.put_dir_from_local_dir(self._local_log_dir, self.log_dir)

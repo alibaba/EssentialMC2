@@ -43,4 +43,10 @@ class LocalFs(BaseFs):
             os.remove(link_path)
         os.symlink(target_path, link_path)
 
+    def put_dir_from_local_dir(self, local_dir, target_dir):
+        # Do not.
+        return
+
+
+
 

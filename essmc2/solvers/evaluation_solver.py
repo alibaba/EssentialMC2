@@ -77,7 +77,7 @@ class EvaluationSolver(BaseSolver):
             data_gpu = transfer_data_to_cuda(data)
             result = self.model(**data_gpu)
 
-            self._iter_outputs[self._mode] = result
+            self._iter_outputs[self._mode] = self._reduce_scalar(result)
 
             if self.do_final_eval:
                 # Collect data
@@ -122,7 +122,8 @@ class EvaluationSolver(BaseSolver):
 
             # Save all data
             if self.save_eval_data and rank == 0:
-                save_path = osp.join(self.work_dir, "eval_{:05d}.pth".format(self.epoch))
+                # minus 1, means index
+                save_path = osp.join(self.work_dir, "eval_{:05d}.pth".format(self.epoch + self.num_folds - 1))
                 with FS.get_fs_client(save_path) as client:
                     local_file = client.convert_to_local_path(save_path)
                     torch.save(concat_collect_data, local_file)

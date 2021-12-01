@@ -103,6 +103,10 @@ class BaseFs(object, metaclass=ABCMeta):
     def make_link(self, link_path, target_path):
         pass
 
+    @abstractmethod
+    def put_dir_from_local_dir(self, local_dir, target_dir):
+        pass
+
     def _clear(self):
         for remove in list(self.to_removes):
             self.remove_local_file(remove)

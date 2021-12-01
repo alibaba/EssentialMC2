@@ -95,7 +95,8 @@ class CheckpointHook(Hook):
                         self._last_best = cur_state
                         cur_is_best = True
                     checkpoint["_CheckpointHook_best"] = self._last_best
-            save_path = osp.join(solver.work_dir, f"epoch-{solver.epoch + solver.num_folds}.pth")
+            # minus 1, means index
+            save_path = osp.join(solver.work_dir, "epoch-{:05d}.pth".format(solver.epoch + solver.num_folds - 1))
 
             with FS.get_fs_client(save_path) as client:
                 local_file = client.convert_to_local_path(save_path)

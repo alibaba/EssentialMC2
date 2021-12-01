@@ -26,7 +26,7 @@ def _load_hmdb51(anno_dir, split_id=1, mode='train'):
     ret = []
     for label_name in HMDB51_LABELS:
         gt_label = HMDB51_LABELS.index(label_name)
-        split_file = osp.join(anno_dir, f"{label_name}_split{split_id}.txt")
+        split_file = osp.join(anno_dir, f"{label_name}_test_split{split_id}.txt")
         with open(split_file) as f:
             for line in f.readlines():
                 line = line.strip()

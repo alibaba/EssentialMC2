@@ -1,14 +1,14 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
+import datetime
 import logging
 import os
 import os.path as osp
 import random
-import datetime
 import tempfile
+from typing import Optional
 
 import oss2
-from typing import Optional
 
 from .base_fs import BaseFs
 from .registry import FILE_SYSTEMS
@@ -47,7 +47,8 @@ class AliyunOssFs(BaseFs):
 
         key = path[len(self.prefix):]
         basename = osp.basename(path)
-        randname = '{0:%Y%m%d%H%M%S%f}'.format(datetime.datetime.now())+''.join([str(random.randint(1,10)) for i in range(5)])
+        randname = '{0:%Y%m%d%H%M%S%f}'.format(datetime.datetime.now()) + ''.join(
+            [str(random.randint(1, 10)) for i in range(5)])
         tmp_file = osp.join(tempfile.gettempdir(), randname + '_' + basename)
         retry = 0
         while retry < self.retry_times:
@@ -108,4 +109,12 @@ class AliyunOssFs(BaseFs):
         target_key = osp.relpath(target_path, self.prefix)
         self.bucket.put_symlink(target_key, link_key)
 
+    def put_dir_from_local_dir(self, local_dir, target_dir):
+        self._init_bucket()
 
+        for folder, sub_folders, files in os.walk(local_dir):
+            for file in files:
+                file_abs_path = osp.join(folder, file)
+                file_rel_path = osp.relpath(file_abs_path, local_dir)
+                target_path = osp.join(target_dir, file_rel_path)
+                self.put_object_from_local_file(file_abs_path, target_path)

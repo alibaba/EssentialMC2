@@ -1,13 +1,12 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
 import logging
+import numbers
 import sys
 from collections import OrderedDict
-import numbers
 
 import numpy as np
 import torch
-import torch.distributed as du
 
 from essmc2.utils.file_systems import FS
 from .distribute import get_dist_info
@@ -83,9 +82,6 @@ class LogAgg(object):
                 # Must be scalar
                 if not v.ndim == 0:
                     continue
-                if du.is_available() and du.is_initialized():
-                    v = v.data.clone()
-                    du.all_reduce(v.div_(du.get_world_size()))
                 v = v.item()
             elif isinstance(v, np.ndarray):
                 # Must be scalar

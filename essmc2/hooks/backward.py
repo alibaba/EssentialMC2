@@ -13,7 +13,10 @@ class BackwardHook(Hook):
         super(BackwardHook, self).__init__(priority=priority)
 
     def after_iter(self, solver):
-        if solver.optimizer is not None and solver.is_train_mode and 'loss' in solver.iter_outputs:
+        if solver.optimizer is not None \
+                and solver.is_train_mode \
+                and solver.loss is not None:
             solver.optimizer.zero_grad()
-            solver.iter_outputs["loss"].backward()
+            solver.loss.backward()
             solver.optimizer.step()
+            solver.loss = None
