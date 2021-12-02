@@ -2,7 +2,7 @@
 ==========================================
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: 开始使用
 
     install.md
@@ -16,12 +16,8 @@
     tutorials/custom.md
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: 使用建议
 
     tutorials/model_construct.md
-
-索引与表格
-==================
-* :ref:`genindex`
-* :ref:`search`
+    tutorials/model_load_pretrain.md
