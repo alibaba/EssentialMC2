@@ -8,9 +8,7 @@ from torch.nn.functional import softmax, sigmoid
 
 from essmc2.models.networks.train_module import TrainModule
 from essmc2.models.registry import MODELS, BACKBONES, NECKS, HEADS, LOSSES
-from essmc2.utils.logger import get_logger
 from essmc2.utils.metrics import METRICS
-from essmc2.utils.model import load_pretrained
 
 _ACTIVATE_MAPPER = {
     "softmax": partial(softmax, dim=1),
@@ -29,8 +27,6 @@ class Classifier(TrainModule):
         act_name (str): Defines activate function, 'softmax' or 'sigmoid'.
         topk (Sequence[int]): Defines how to calculate accuracy metrics.
         freeze_bn (bool): If True, freeze all BatchNorm layers including LayerNorm.
-        use_pretrain (bool): If True, load pretrained model parameters from load_from.
-        load_from (str):
     """
 
     def __init__(self,
@@ -40,9 +36,7 @@ class Classifier(TrainModule):
                  loss=None,
                  act_name='softmax',
                  topk=(1,),
-                 freeze_bn=False,
-                 use_pretrain=False,
-                 load_from=""):
+                 freeze_bn=False):
         super().__init__()
         # Construct model
         self.backbone: nn.Module = BACKBONES.build(backbone)
@@ -58,9 +52,6 @@ class Classifier(TrainModule):
         self.metric = METRICS.build(dict(type='accuracy', topk=topk))
 
         self.freeze_bn = freeze_bn
-
-        if use_pretrain:
-            load_pretrained(self, load_from, logger=get_logger())
 
     def train(self, mode=True):
         self.training = mode

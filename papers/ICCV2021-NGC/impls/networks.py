@@ -9,9 +9,7 @@ import torch.nn.functional as F
 
 from essmc2.models import TrainModule
 from essmc2.models.registry import MODELS, BACKBONES, NECKS, HEADS
-from essmc2.utils.logger import get_logger
 from essmc2.utils.metric import accuracy
-from essmc2.utils.model import load_pretrained
 
 
 class NGCInference(nn.Module):
@@ -38,8 +36,6 @@ class NGCNetwork(TrainModule):
                  alpha=8.0,
                  w_inst=1.0,
                  w_sup=1.0,
-                 use_pretrain=False,
-                 load_from="",
                  data_parallel=False,
                  **kwargs):
         super(NGCNetwork, self).__init__()
@@ -51,9 +47,6 @@ class NGCNetwork(TrainModule):
         self.w_inst = w_inst
         self.w_sup = w_sup
         self.num_classes = num_classes
-
-        if use_pretrain:
-            load_pretrained(self, load_from, logger=get_logger())
 
         if data_parallel:
             self.infer = nn.parallel.DataParallel(self.infer)

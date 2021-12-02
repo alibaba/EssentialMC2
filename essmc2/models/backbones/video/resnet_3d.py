@@ -3,8 +3,6 @@
 import torch.nn as nn
 
 from essmc2.models.registry import BACKBONES, STEMS, BRICKS
-from essmc2.utils.logger import get_logger
-from essmc2.utils.model import load_pretrained
 from .bricks.non_local import NonLocal
 from .init_helper import _init_convnet_weights
 
@@ -178,9 +176,7 @@ class ResNet3D(nn.Module):
                  non_local_cfg=None,
                  bn_params=None,
                  init_cfg=None,
-                 visual_cfg=None,
-                 use_pretrain=False,
-                 load_from="",
+                 visual_cfg=None
                  ):
         super(ResNet3D, self).__init__()
 
@@ -230,10 +226,6 @@ class ResNet3D(nn.Module):
         init_cfg = init_cfg or dict()
         if init_cfg.get("name") == "kaiming":
             _init_convnet_weights(self)
-
-        # load pretrain
-        if use_pretrain:
-            load_pretrained(self, load_from, logger=get_logger())
 
     def forward(self, video):
         x = self.conv1(video)
