@@ -10,13 +10,13 @@ from ..registry import HEADS
 @HEADS.register_class()
 class ClassifierHead(nn.Module):
     def __init__(self,
-                 in_channels,
+                 dim,
                  num_classes):
         super().__init__()
-        self.in_channels = in_channels
+        self.dim = dim
         self.num_classes = num_classes
 
-        self.fc = nn.Linear(in_channels, num_classes)
+        self.fc = nn.Linear(dim, num_classes)
 
     def forward(self, x):
         return self.fc(x)
