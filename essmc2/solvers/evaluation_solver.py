@@ -14,6 +14,29 @@ from ..utils.file_systems import FS
 from ..utils.metrics import METRICS
 
 
+def _get_value(data: dict, key: str):
+    """ Recursively get value from data by a multi-level key.
+
+    Args:
+        data (dict):
+        key (str): 'data', 'meta.path', 'a.b.c'
+
+    Returns:
+        Value.
+
+    """
+    if not isinstance(data, dict):
+        return None
+    if key in data:
+        return data[key]
+    elif "." in key:
+        par_key = key.split(".")[0]
+        sub_key = ".".join(key.split(".")[1:])
+        if par_key in data:
+            return _get_value(data[par_key], sub_key)
+    return None
+
+
 @SOLVERS.register_class()
 class EvaluationSolver(BaseSolver):
     """ Evaluation once.
@@ -28,36 +51,39 @@ class EvaluationSolver(BaseSolver):
         model (torch.nn.Module): Model to train or eval.
         do_final_eval (bool): If True, collect all results according to metric_cfg
             and calculate metric values in the end. Default is False.
-        meta_keys (tuple or list, optional): Collect keys from input metas.
+            Either do_final_eval or save_eval_data is True, do collect action.
+        save_eval_data (bool): If True, save all collected data. Default path is
+            "WORK_DIR/eval_{epoch}_data.pth".
+            Either do_final_eval or save_eval_data is True, do collect action.
         eval_metric_cfg (dict, Sequence, optional): Metric function descriptor like
             {
                 "metric": dict(type="accuracy", topk=(1, )),
                 "keys": ("result", "gt_label")
             }
-        save_eval_data (bool): If True, save all collected data. Default path is
-            "WORK_DIR/eval_{epoch}_data.pth"
-
+        extra_keys (tuple or list, optional): Extra keys to collect, e.g. ["meta.image_path"]
     """
 
     def __init__(self,
                  model,
                  eval_interval=1,
                  do_final_eval=False,
-                 meta_keys=None,
-                 eval_metric_cfg=None,
                  save_eval_data=False,
+                 eval_metric_cfg=None,
+                 extra_keys=None,
                  **kwargs):
         super().__init__(model, **kwargs)
 
         self.eval_interval = eval_interval
-        self.metrics = []
-        self.meta_keys = set(meta_keys or [])
-        self.metric_keys = set()
-        self._build_metrics(eval_metric_cfg)
-        self.meta_keys = sorted(list(self.meta_keys))
-        self.metric_keys = sorted(list(self.metric_keys))
         self.do_final_eval = do_final_eval
         self.save_eval_data = save_eval_data
+        self.metrics = []
+        self._collect_keys = set()
+        if self.do_final_eval or self.save_eval_data:
+            self._build_metrics(eval_metric_cfg)
+            self._collect_keys.update(list(extra_keys or []))
+            self._collect_keys = sorted(list(self._collect_keys))
+            if len(self._collect_keys) > 0:
+                self.logger.info(f"{', '.join(self._collect_keys)} will be collected during eval epoch")
 
     @torch.no_grad()
     def run_eval_epoch(self, val_data_loader):
@@ -79,27 +105,32 @@ class EvaluationSolver(BaseSolver):
 
             self._iter_outputs[self._mode] = self._reduce_scalar(result)
 
-            if self.do_final_eval:
+            if self.do_final_eval or self.save_eval_data:
                 # Collect data
                 if isinstance(result, torch.Tensor):
                     data_gpu["result"] = result
                 elif isinstance(result, dict):
                     data_gpu.update(result)
 
-                step_data = {key: data_gpu[key] for key in self.metric_keys}
+                step_data = OrderedDict()
+                for key in self._collect_keys:
+                    value = _get_value(data_gpu, key)
+                    if value is None:
+                        raise ValueError(f"Cannot get valid value from model input or output data with key {key}")
+                    step_data[key] = value
+
                 step_data = transfer_data_to_cpu(step_data)
 
                 for key, value in step_data.items():
-                    collect_data[key].append(value.clone())
-
-                if len(self.meta_keys) > 0 and "meta" in data_gpu:
-                    for key in self.meta_keys:
-                        collect_data[key].append(data_gpu["meta"][key])
+                    if isinstance(value, torch.Tensor):
+                        collect_data[key].append(value.clone())
+                    else:
+                        collect_data[key].append(value)
 
             self.after_iter()
         self.after_all_iter()
 
-        if self.do_final_eval:
+        if self.do_final_eval or self.save_eval_data:
             # Concat collect_data
             concat_collect_data = OrderedDict()
             for key, tensors in collect_data.items():
@@ -113,11 +144,10 @@ class EvaluationSolver(BaseSolver):
             # If distributed and use DistributedSampler
             # Gather all collect data to rank 0
             if world_size > 0 and type(val_data_loader.sampler) is torch.utils.data.DistributedSampler:
-                concat_collect_data = {key: gather_data(concat_collect_data[key]) for key in
-                                       self.metric_keys + self.meta_keys}
+                concat_collect_data = {key: gather_data(concat_collect_data[key]) for key in self._collect_keys}
 
             # Do final evaluate
-            if rank == 0:
+            if self.do_final_eval and rank == 0:
                 for metric in self.metrics:
                     self._epoch_outputs[self._mode].update(
                         metric["fn"](*[concat_collect_data[key] for key in metric["keys"]]))
@@ -153,4 +183,5 @@ class EvaluationSolver(BaseSolver):
                 "fn": fn,
                 "keys": keys
             })
-            self.metric_keys.update(keys)
+            self._collect_keys.update(keys)
+
