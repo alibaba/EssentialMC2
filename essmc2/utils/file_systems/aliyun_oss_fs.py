@@ -118,3 +118,8 @@ class AliyunOssFs(BaseFs):
                 file_rel_path = osp.relpath(file_abs_path, local_dir)
                 target_path = osp.join(target_dir, file_rel_path)
                 self.put_object_from_local_file(file_abs_path, target_path)
+
+    def exists(self, target_path):
+        self._init_bucket()
+
+        return self.bucket.object_exists(osp.relpath(target_path, self.prefix))

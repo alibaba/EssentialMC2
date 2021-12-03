@@ -46,3 +46,8 @@ class LocalFs(BaseFs):
     def put_dir_from_local_dir(self, local_dir, target_dir):
         # Do not.
         return
+
+    def exists(self, target_path):
+        return os.path.exists(target_path)
+
+
