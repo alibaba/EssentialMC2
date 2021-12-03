@@ -155,7 +155,7 @@ class EvaluationSolver(BaseSolver):
             # Save all data
             if self.save_eval_data and rank == 0:
                 # minus 1, means index
-                save_path = osp.join(self.work_dir, "eval_{:05d}.pth".format(self.epoch + self.num_folds - 1))
+                save_path = osp.join(self.work_dir, "eval_{:05d}.pth".format(self.epoch + self.num_folds))
                 with FS.get_fs_client(save_path) as client:
                     local_file = client.convert_to_local_path(save_path)
                     torch.save(concat_collect_data, local_file)
@@ -170,7 +170,7 @@ class EvaluationSolver(BaseSolver):
         self.model.load_state_dict(checkpoint["state_dict"])
 
     def save_checkpoint(self) -> dict:
-        raise NotImplementedError
+        return {}
 
     def _build_metrics(self, metric_cfg):
         if isinstance(metric_cfg, (list, tuple)):
