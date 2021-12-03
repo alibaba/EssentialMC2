@@ -54,10 +54,13 @@ class CheckpointHook(Hook):
         )
 
     def before_solve(self, solver):
-        if solver.resume_from is None or not osp.exists(solver.resume_from):
+        if solver.resume_from is None:
             return
-        solver.logger.info(f"Loading checkpoint from {solver.resume_from}")
         with FS.get_fs_client(solver.resume_from) as client:
+            if not client.exists(solver.resume_from):
+                solver.logger.error(f"File not exists {solver.resume_from}")
+                return
+            solver.logger.info(f"Loading checkpoint from {solver.resume_from}")
             local_file = client.get_object_to_local_file(solver.resume_from)
             checkpoint = torch.load(local_file)
         solver.load_checkpoint(checkpoint)
