@@ -107,6 +107,10 @@ class BaseFs(object, metaclass=ABCMeta):
     def put_dir_from_local_dir(self, local_dir, target_dir):
         pass
 
+    @abstractmethod
+    def exists(self, target_path):
+        pass
+
     def _clear(self):
         for remove in list(self.to_removes):
             self.remove_local_file(remove)

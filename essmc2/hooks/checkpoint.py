@@ -54,10 +54,13 @@ class CheckpointHook(Hook):
         )
 
     def before_solve(self, solver):
-        if solver.resume_from is None or not osp.exists(solver.resume_from):
+        if solver.resume_from is None:
             return
-        solver.logger.info(f"Loading checkpoint from {solver.resume_from}")
         with FS.get_fs_client(solver.resume_from) as client:
+            if not client.exists(solver.resume_from):
+                solver.logger.error(f"File not exists {solver.resume_from}")
+                return
+            solver.logger.info(f"Loading checkpoint from {solver.resume_from}")
             local_file = client.get_object_to_local_file(solver.resume_from)
             checkpoint = torch.load(local_file)
         solver.load_checkpoint(checkpoint)
@@ -70,6 +73,8 @@ class CheckpointHook(Hook):
         if (solver.epoch + 1) % self.interval == 0:
             solver.logger.info(f'Saving checkpoint after {solver.epoch + solver.num_folds} epochs')
             checkpoint = solver.save_checkpoint()
+            if checkpoint is None or len(checkpoint) == 0:
+                return
             cur_is_best = False
             if self.save_best:
                 # Try to get current state from epoch_outputs["eval"]
@@ -95,7 +100,7 @@ class CheckpointHook(Hook):
                         cur_is_best = True
                     checkpoint["_CheckpointHook_best"] = self._last_best
             # minus 1, means index
-            save_path = osp.join(solver.work_dir, "epoch-{:05d}.pth".format(solver.epoch + solver.num_folds - 1))
+            save_path = osp.join(solver.work_dir, "epoch-{:05d}.pth".format(solver.epoch + solver.num_folds))
 
             with FS.get_fs_client(save_path) as client:
                 local_file = client.convert_to_local_path(save_path)

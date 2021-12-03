@@ -6,7 +6,7 @@ import os.path as osp
 import random
 import tempfile
 import urllib.parse as parse
-import urllib.request as request
+import urllib.request
 
 from .base_fs import BaseFs
 from .registry import FILE_SYSTEMS
@@ -32,7 +32,7 @@ class HttpFs(BaseFs):
         retry = 0
         while retry < self.retry_times:
             try:
-                request.urlretrieve(path, tmp_file)
+                urllib.request.urlretrieve(path, tmp_file)
                 if osp.exists(tmp_file):
                     break
             except Exception:
@@ -73,3 +73,13 @@ class HttpFs(BaseFs):
 
     def put_dir_from_local_dir(self, local_dir, target_dir):
         raise NotImplemented
+
+    def exists(self, target_path):
+        req = urllib.request.Request(target_path)
+        req.get_method = lambda: 'HEAD'
+
+        try:
+            urllib.request.urlopen(req)
+            return True
+        except Exception as e:
+            return False
