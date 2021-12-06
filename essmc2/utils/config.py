@@ -18,6 +18,7 @@ import copy
 import inspect
 import json
 import os
+import os.path as osp
 import sys
 from importlib import import_module
 
@@ -40,6 +41,8 @@ _SECURE_KEYWORDS = [
     "ak.value",
     "sk"
 ]
+
+_BASE_KEY = "_base_"
 
 
 class ConfigDict(Dict):
@@ -213,20 +216,26 @@ class Config(object):
             An exception will raise if unsupported type file occurs.
         """
         if filename.endswith(".py"):
-            return Config._parse_python_file(filename)
+            cfg_dict = Config._parse_python_file(filename)
         elif filename.endswith(".json"):
-            return Config._parse_json_file(filename)
-        raise Exception(f"Unsupported filename {filename}")
+            cfg_dict = Config._parse_json_file(filename)
+        else:
+            raise Exception(f"Unsupported filename {filename}")
+        if _BASE_KEY in cfg_dict:
+            _base_list = cfg_dict.pop(_BASE_KEY)
+            if not isinstance(_base_list, list):
+                _base_list = [_base_list]
+            a = Config.load_file(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _base_list[0]))))
+            for _b in _base_list[1:]:
+                b = Config.load_file(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _b))))
+                a = Config.merge_a_into_b(a, b)
+            a = Config.merge_a_into_b(a, Config(cfg_dict=cfg_dict))
+            return Config(cfg_dict=a.__getattribute__('_cfg_dict'), source=filename)
+        else:
+            return Config(cfg_dict=cfg_dict, source=filename)
 
     @staticmethod
-    def loads(s, loads_format="json"):
-        assert loads_format in ("json",)
-        if loads_format == "json":
-            return Config._loads_json(s)
-        raise Exception(f"Unsupported type {loads_format}, except ('json', )")
-
-    @staticmethod
-    def _parse_python_file(filename):
+    def _parse_python_file(filename) -> dict:
         """ Parse python file and load basic elements without functions, modules, classes, etc...
         """
         filepath = os.path.abspath(os.path.expanduser(filename))
@@ -242,15 +251,25 @@ class Config(object):
         cfg_dict = {name: value for name, value in module.__dict__.items() if not name.startswith("__") and
                     not inspect.isfunction(value) and not inspect.ismodule(value) and not inspect.isclass(value)}
         del sys.modules[module_name]
-        return Config(cfg_dict=cfg_dict, source=filename)
+        return cfg_dict
 
     @staticmethod
-    def _parse_json_file(filename):
+    def _parse_json_file(filename) -> dict:
         """ Parse json file
         """
         with open(filename) as f:
             content = f.read()
-        return Config._loads_json(content, filename)
+        cfg_dict = json.load(content)
+        if type(cfg_dict) is not dict:
+            raise Exception(f"Json should contains dict type, get {type(cfg_dict)}")
+        return cfg_dict
+
+    @staticmethod
+    def loads(s, loads_format="json"):
+        assert loads_format in ("json",)
+        if loads_format == "json":
+            return Config._loads_json(s)
+        raise Exception(f"Unsupported type {loads_format}, except ('json', )")
 
     @staticmethod
     def _loads_json(s, filename=None):
