@@ -1,0 +1,154 @@
+# Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+
+
+import os
+from typing import Callable, Optional
+
+import cv2
+import decord
+import numpy as np
+import torch
+import torch.utils.dlpack as dlpack
+
+from .frame_sampler import do_frame_sample
+from ..file_systems import FS
+
+
+class _Wrapper(object):
+    @property
+    def len(self) -> int:
+        raise NotImplemented
+
+    @property
+    def fps(self) -> float:
+        raise NotImplemented
+
+    @property
+    def duration(self) -> float:
+        raise NotImplemented
+
+    def sample_frames(self, decode_list: torch.Tensor) -> torch.Tensor:
+        raise NotImplemented
+
+
+class VideoReaderWrapper(_Wrapper):
+    def __init__(self, video_path, decoder='decord'):
+        self._video_path = video_path
+        self._decoder_type = decoder
+        if decoder == "decord":
+            self._vr = decord.VideoReader(self._video_path)
+
+    @property
+    def len(self):
+        return len(self._vr)
+
+    @property
+    def fps(self):
+        return self._vr.get_avg_fps()
+
+    @property
+    def duration(self):
+        return float(self.len) / self.fps
+
+    def __del__(self):
+        if self._vr is not None:
+            del self._vr
+            self._vr = None
+
+    def sample_frames(self, decode_list: torch.Tensor) -> torch.Tensor:
+        frames = dlpack.from_dlpack(self._vr.get_batch(decode_list).to_dlpack()).clone()
+        return frames
+
+
+class FramesReaderWrapper(_Wrapper):
+    def __init__(self, frame_dir: str, extract_fps: float, suffix=".jpg"):
+        self._frame_dir = frame_dir
+        self._extract_fps = extract_fps
+        self._suffix = suffix
+        self._frame_list = sorted(
+            [os.path.join(self._frame_dir, t) for t in os.listdir(self._frame_dir) if t.endswith(self._suffix)])
+        self._frames = [None] * len(self._frame_list)
+
+    @property
+    def len(self) -> int:
+        return len(self._frame_list)
+
+    @property
+    def fps(self):
+        return self._extract_fps
+
+    @property
+    def duration(self):
+        return float(self.len) / self.fps
+
+    def _load_frame(self, idx):
+        path = self._frame_list[idx]
+        img = cv2.imread(path, cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        self._frames[idx] = img
+
+    def sample_frames(self, decode_list: torch.Tensor) -> torch.Tensor:
+        ret = []
+        for idx in decode_list.numpy():
+            if self._frames[idx] is None:
+                self._load_frame(idx)
+            ret.append(self._frames[idx].copy())
+        ret = np.asarray(ret)
+        return torch.from_numpy(ret)
+
+
+class EasyVideoReader(object):
+    """ A video reader which is easy to use in real applications.
+
+    Args:
+         video_path (str): Path of video file.
+         num_frames (int): Extract frames for one sample.
+         clip_duration (float): Clip duration to be extracted uniformly.
+         stride (float): The offset (in secs) of the next clip overlaps the last clip, default is 0 no overlap.
+         transforms (Optional[Callable]): Do transform operations, default is None.
+
+    """
+    def __init__(self, video_path: str, num_frames: int, clip_duration: float, stride: float = 0,
+                 transforms: Optional[Callable] = None):
+        self._video_path = video_path
+        self._num_frames = num_frames
+        self._clip_duration = clip_duration
+        self._stride = stride
+        assert self._stride < self._clip_duration, "Stride must be smaller than clip_duration!"
+        self._transforms = transforms
+
+        self._last_end = 0.0
+
+        client = FS.get_fs_client(self._video_path)
+        local_path = client.get_object_to_local_file(self._video_path)
+        self._vr = VideoReaderWrapper(local_path)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        start_sec = max(0.0, self._last_end - self._stride)
+        end_sec = start_sec + self._clip_duration
+
+        if end_sec > self._vr.duration:
+            del self._vr
+            raise StopIteration
+
+        decode_list = do_frame_sample('uniform', self._vr.len, self._vr.fps, self._num_frames, start_sec=start_sec,
+                                      end_sec=end_sec)
+        output_tensor = self._vr.sample_frames(decode_list)
+
+        self._last_end = end_sec
+
+        output = {
+            "video": output_tensor,
+            "meta": {
+                "video_path": self._video_path,
+                "start_sec": start_sec,
+                "end_sec": end_sec
+            }
+        }
+
+        if self._transforms is not None:
+            return self._transforms(output)
+        return output
