@@ -84,7 +84,7 @@ class BaseFs(object, metaclass=ABCMeta):
         """ According to self.local_mapper, map target_path to local_path
 
         Args:
-            target_path (str): Target directory in non-local file system.
+            target_path (str): Target path in non-local file system.
 
         Returns:
             File path in local file system.
@@ -117,7 +117,6 @@ class BaseFs(object, metaclass=ABCMeta):
         self.to_removes.clear()
 
     def __enter__(self):
-        self._clear()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
