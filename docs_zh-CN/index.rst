@@ -6,6 +6,7 @@
     :caption: 开始使用
 
     install.md
+    tutorials/quick_start_inference.md
     tutorials/quick_start.md
 
 .. toctree::
