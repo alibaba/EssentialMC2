@@ -12,6 +12,8 @@ import torch.utils.dlpack as dlpack
 
 from .frame_sampler import do_frame_sample
 from ..file_systems import FS
+from typing import Union
+from fractions import Fraction
 
 
 class _Wrapper(object):
@@ -103,21 +105,25 @@ class EasyVideoReader(object):
     Args:
          video_path (str): Path of video file.
          num_frames (int): Extract frames for one sample.
-         clip_duration (float): Clip duration to be extracted uniformly.
-         stride (float): The offset (in secs) of the next clip overlaps the last clip, default is 0 no overlap.
+         clip_duration (Union[float, Fraction, str]): Clip duration to be extracted uniformly.
+         overlap (Union[float, Fraction, str]): The offset (in secs) of the next clip overlaps the last clip, default is 0 no overlap.
          transforms (Optional[Callable]): Do transform operations, default is None.
 
     """
-    def __init__(self, video_path: str, num_frames: int, clip_duration: float, stride: float = 0,
+    def __init__(self,
+                 video_path: str,
+                 num_frames: int,
+                 clip_duration: Union[float, Fraction, str],
+                 overlap: Union[float, Fraction, str] = Fraction(0),
                  transforms: Optional[Callable] = None):
-        self._video_path = video_path
-        self._num_frames = num_frames
-        self._clip_duration = clip_duration
-        self._stride = stride
-        assert self._stride < self._clip_duration, "Stride must be smaller than clip_duration!"
+        self._video_path: str = video_path
+        self._num_frames: int = num_frames
+        self._clip_duration: Fraction = Fraction(clip_duration)
+        self._overlap: Fraction = Fraction(overlap)
+        assert self._overlap < self._clip_duration, "Overlap must be smaller than clip_duration!"
         self._transforms = transforms
 
-        self._last_end = 0.0
+        self._last_end: Fraction = Fraction(0)
 
         client = FS.get_fs_client(self._video_path)
         local_path = client.get_object_to_local_file(self._video_path)
@@ -127,15 +133,15 @@ class EasyVideoReader(object):
         return self
 
     def __next__(self):
-        start_sec = max(0.0, self._last_end - self._stride)
+        start_sec = max(Fraction(0), self._last_end - self._overlap)
         end_sec = start_sec + self._clip_duration
 
         if end_sec > self._vr.duration:
             del self._vr
             raise StopIteration
 
-        decode_list = do_frame_sample('uniform', self._vr.len, self._vr.fps, self._num_frames, start_sec=start_sec,
-                                      end_sec=end_sec)
+        decode_list = do_frame_sample('uniform', self._vr.len, self._vr.fps, self._num_frames,
+                                      start_sec=float(start_sec), end_sec=float(end_sec))
         output_tensor = self._vr.sample_frames(decode_list)
 
         self._last_end = end_sec
@@ -144,8 +150,8 @@ class EasyVideoReader(object):
             "video": output_tensor,
             "meta": {
                 "video_path": self._video_path,
-                "start_sec": start_sec,
-                "end_sec": end_sec
+                "start_sec": float(start_sec),
+                "end_sec": float(end_sec)
             }
         }
 
