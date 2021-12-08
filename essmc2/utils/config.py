@@ -21,6 +21,7 @@ import os
 import os.path as osp
 import sys
 from importlib import import_module
+from typing import Optional, Type
 
 from addict import Dict
 from yapf.yapflib.yapf_api import FormatCode
@@ -43,6 +44,7 @@ _SECURE_KEYWORDS = [
 ]
 
 _BASE_KEY = "_base_"
+_DELETE_KEY = "_delete_"
 
 
 class ConfigDict(Dict):
@@ -221,18 +223,10 @@ class Config(object):
             cfg_dict = Config._parse_json_file(filename)
         else:
             raise Exception(f"Unsupported filename {filename}")
-        if _BASE_KEY in cfg_dict:
-            _base_list = cfg_dict.pop(_BASE_KEY)
-            if not isinstance(_base_list, list):
-                _base_list = [_base_list]
-            a = Config.load_file(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _base_list[0]))))
-            for _b in _base_list[1:]:
-                b = Config.load_file(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _b))))
-                a = Config.merge_a_into_b(a, b)
-            a = Config.merge_a_into_b(a, Config(cfg_dict=cfg_dict))
-            return Config(cfg_dict=a.__getattribute__('_cfg_dict'), source=filename)
-        else:
-            return Config(cfg_dict=cfg_dict, source=filename)
+
+        cfg_dict = Config._process_predefined_vars(cfg_dict, filename=filename)
+
+        return Config(cfg_dict=cfg_dict, source=filename)
 
     @staticmethod
     def _parse_python_file(filename) -> dict:
@@ -259,24 +253,75 @@ class Config(object):
         """
         with open(filename) as f:
             content = f.read()
-        cfg_dict = json.load(content)
-        if type(cfg_dict) is not dict:
-            raise Exception(f"Json should contains dict type, get {type(cfg_dict)}")
-        return cfg_dict
+        return Config._loads_json(content)
 
     @staticmethod
     def loads(s, loads_format="json"):
         assert loads_format in ("json",)
         if loads_format == "json":
-            return Config._loads_json(s)
-        raise Exception(f"Unsupported type {loads_format}, except ('json', )")
+            cfg_dict = Config._loads_json(s)
+        else:
+            raise Exception(f"Unsupported type {loads_format}, except ('json', )")
+
+        cfg_dict = Config._process_predefined_vars(cfg_dict)
+
+        return Config(cfg_dict=cfg_dict)
 
     @staticmethod
-    def _loads_json(s, filename=None):
+    def _loads_json(s) -> dict:
         cfg_dict = json.loads(s)
         if type(cfg_dict) is not dict:
             raise Exception(f"Json should contains dict type, get {type(cfg_dict)}")
-        return Config(cfg_dict=cfg_dict, source=filename)
+        return cfg_dict
+
+    @staticmethod
+    def _process_predefined_vars(cfg_dict: dict, filename: Optional[str] = None) -> Type[dict]:
+        # process _base_ field
+        if _BASE_KEY in cfg_dict:
+            _base_list = cfg_dict.pop(_BASE_KEY)
+            if isinstance(_base_list, (list, tuple)):
+                _base_list = list(_base_list)
+            elif isinstance(_base_list, str):
+                _base_list = [_base_list]
+            else:
+                raise ValueError('Input '
+                                 + ('' if filename is None else f'{filename} ')
+                                 + f'contains {_BASE_KEY} filed, which should be type [list, tuple, str], '
+                                   f'get {type(_base_list)}'
+                                 )
+            # When filename is not None, _base_ fields contains relative pathes to filename
+            # Else contains absolute path
+            if filename is not None:
+                b = Config.load_file(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _base_list[0]))))
+            else:
+                b = Config.load_file(_base_list[0])
+            for _a in _base_list[1:]:
+                if filename is not None:
+                    a = Config.load_file(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _a))))
+                else:
+                    a = Config.load_file(_a)
+                b = Config.merge_a_into_b(a, b)
+            b = Config.merge_a_into_b(Config(cfg_dict=cfg_dict), b)
+            cfg_dict = b.__getattribute__('_cfg_dict')
+
+        # process _delete_ field
+        if _DELETE_KEY in cfg_dict:
+            _del_list = cfg_dict.pop(_DELETE_KEY)
+            if isinstance(_del_list, (list, tuple)):
+                _del_list = list(_del_list)
+            elif isinstance(_del_list, str):
+                _del_list = [_del_list]
+            else:
+                raise ValueError('Input '
+                                 + ('' if filename is None else f'{filename} ')
+                                 + f'contains {_DELETE_KEY} filed, which should be type [list, tuple, str], '
+                                   f'get {type(_base_list)}'
+                                 )
+            for del_key in _del_list:
+                if del_key in cfg_dict:
+                    cfg_dict.pop(del_key)
+
+        return cfg_dict
 
     def dump(self, file):
         """ Dump current config to a file, currently only support python file
@@ -328,28 +373,6 @@ class Config(object):
         text, _ = FormatCode(s, style_config=style, verify=True)
         return text
 
-    def _dumps_json(self):
-        deep_copy = copy.deepcopy(self._cfg_dict)
-
-        secure_keys = set(self._secure_keys)
-
-        def make_secure(value):
-            if isinstance(value, dict):
-                for key in value.keys():
-                    if key in secure_keys and type(value[key]) is str:
-                        value[key] = "***"
-                    else:
-                        value[key] = make_secure(value[key])
-            elif isinstance(value, list):
-                value = [make_secure(t) for t in value]
-
-            return value
-
-        if self._secure:
-            deep_copy = make_secure(deep_copy)
-
-        return json.dumps(deep_copy, ensure_ascii=False, indent=2)
-
     @staticmethod
     def _dump_list(v):
         v_str = '['
@@ -390,6 +413,28 @@ class Config(object):
             s.append(o_str)
 
         return '\n'.join(s) if root_level else ', '.join(s)
+
+    def _dumps_json(self):
+        deep_copy = copy.deepcopy(self._cfg_dict)
+
+        secure_keys = set(self._secure_keys)
+
+        def make_secure(value):
+            if isinstance(value, dict):
+                for key in value.keys():
+                    if key in secure_keys and type(value[key]) is str:
+                        value[key] = "***"
+                    else:
+                        value[key] = make_secure(value[key])
+            elif isinstance(value, list):
+                value = [make_secure(t) for t in value]
+
+            return value
+
+        if self._secure:
+            deep_copy = make_secure(deep_copy)
+
+        return json.dumps(deep_copy, ensure_ascii=False, indent=2)
 
 
 cfg = Config()
