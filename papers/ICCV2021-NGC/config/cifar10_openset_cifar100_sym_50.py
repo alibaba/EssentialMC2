@@ -1,6 +1,6 @@
-from _updater import update_data, update_model, update_solver
+from _updater import update_openset_data, update_model, update_solver
 
-_base_ = ['./data/cifar10_noise.py',
+_base_ = ['./data/cifar10_noise_openset.py',
           './model/preresnet.py',
           './solver/default_solver.py']
 
@@ -9,9 +9,13 @@ hyper_params = dict(
     # Data
     dataset_root='./datasets/cifar-10-batches-py',
     dataset_name='cifar10',
-    noise_mode='asym',
-    noise_ratio=0.4,
-    openset=False,
+    noise_mode='sym',
+    noise_ratio=0.5,
+    openset=True,
+    open_noise_name="cifar100",
+    open_noise_root="./datasets/cifar-100-python/",
+    open_noise_num_train=20000,
+    open_noise_num_test=10000,
     batch_size=512,
     workers_per_gpu=8,
     # Model
@@ -19,18 +23,19 @@ hyper_params = dict(
     feature_dim=64,
     alpha=8.0,
     data_parallel=False,
-    # Solver
+    # Training
     max_epochs=300,
     lr=0.15,
+    # Solver
     temperature=0.3,
-    warmup_epoch=30,
-    knn_neighbors=10,
+    warmup_epoch=5,
+    knn_neighbors=30,
     low_threshold=0.1,
-    high_threshold=0.7,
+    high_threshold=0.8,
     do_aug=True,
 )
 
-data = update_data(hyper_params)
+data = update_openset_data(hyper_params)
 
 model = update_model(hyper_params)
 
