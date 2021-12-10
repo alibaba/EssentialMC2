@@ -1,2 +1,2 @@
-from .classification import AccuracyMetric
+from .classification import AccuracyMetric, EnsembleAccuracyMetric
 from .registry import METRICS
