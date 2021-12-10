@@ -20,6 +20,7 @@ import json
 import os
 import os.path as osp
 import sys
+import warnings
 from importlib import import_module
 from typing import Optional, Type
 
@@ -45,6 +46,7 @@ _SECURE_KEYWORDS = [
 
 _BASE_KEY = "_base_"
 _DELETE_KEY = "_delete_"
+_RESERVE_KEY = "_reserve_"
 
 
 class ConfigDict(Dict):
@@ -206,6 +208,11 @@ class Config(object):
 
     @staticmethod
     def load_file(filename):
+        warnings.warn("Config.load_file is deprecated, use Config.load instead. Will be removed after v0.1.0.")
+        return Config.load(filename)
+
+    @staticmethod
+    def load(filename):
         """ Load config from filename, currently only support python file
 
         Args:
@@ -292,34 +299,61 @@ class Config(object):
             # When filename is not None, _base_ fields contains relative pathes to filename
             # Else contains absolute path
             if filename is not None:
-                b = Config.load_file(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _base_list[0]))))
+                b = Config.load(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _base_list[0]))))
             else:
-                b = Config.load_file(_base_list[0])
+                b = Config.load(_base_list[0])
             for _a in _base_list[1:]:
                 if filename is not None:
-                    a = Config.load_file(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _a))))
+                    a = Config.load(osp.abspath(osp.expanduser(osp.join(osp.dirname(filename), _a))))
                 else:
-                    a = Config.load_file(_a)
+                    a = Config.load(_a)
                 b = Config.merge_a_into_b(a, b)
             b = Config.merge_a_into_b(Config(cfg_dict=cfg_dict), b)
             cfg_dict = b.__getattribute__('_cfg_dict')
 
-        # process _delete_ field
-        if _DELETE_KEY in cfg_dict:
-            _del_list = cfg_dict.pop(_DELETE_KEY)
-            if isinstance(_del_list, (list, tuple)):
-                _del_list = list(_del_list)
-            elif isinstance(_del_list, str):
-                _del_list = [_del_list]
+        # process _delete_ or _reserve_ field
+        if _DELETE_KEY in cfg_dict or _RESERVE_KEY in cfg_dict:
+            if _DELETE_KEY in cfg_dict and _RESERVE_KEY in cfg_dict:
+                warnings.warn(
+                    f"Get {_DELETE_KEY}: {cfg_dict[_DELETE_KEY]} and {_RESERVE_KEY}: {cfg_dict[_RESERVE_KEY]} in"
+                    + ('' if filename is None else f'{filename} ')
+                    + f" at the same time, will ONLY use {_RESERVE_KEY} and drop {_DELETE_KEY}")
+                cfg_dict.pop(_DELETE_KEY)
+
+            # process _delete_ field
+            if _DELETE_KEY in cfg_dict:
+                _del_list = cfg_dict.pop(_DELETE_KEY)
+                if isinstance(_del_list, (list, tuple)):
+                    _del_list = list(_del_list)
+                elif isinstance(_del_list, str):
+                    _del_list = [_del_list]
+                else:
+                    raise ValueError('Input '
+                                     + ('' if filename is None else f'{filename} ')
+                                     + f'contains {_DELETE_KEY} filed, which should be type [list, tuple, str], '
+                                       f'get {type(_base_list)}'
+                                     )
+                for del_key in _del_list:
+                    if del_key in cfg_dict:
+                        cfg_dict.pop(del_key)
             else:
-                raise ValueError('Input '
-                                 + ('' if filename is None else f'{filename} ')
-                                 + f'contains {_DELETE_KEY} filed, which should be type [list, tuple, str], '
-                                   f'get {type(_base_list)}'
-                                 )
-            for del_key in _del_list:
-                if del_key in cfg_dict:
-                    cfg_dict.pop(del_key)
+                # process _reserve_ field
+                _reserve_list = cfg_dict.pop(_RESERVE_KEY)
+                if isinstance(_reserve_list, (list, tuple)):
+                    _reserve_list = list(_reserve_list)
+                elif isinstance(_reserve_list, str):
+                    _reserve_list = [_reserve_list]
+                else:
+                    raise ValueError('Input '
+                                     + ('' if filename is None else f'{filename} ')
+                                     + f'contains {_RESERVE_KEY} filed, which should be type [list, tuple, str], '
+                                       f'get {type(_base_list)}'
+                                     )
+                new_dict = {}
+                for reserve_key in _reserve_list:
+                    if reserve_key in cfg_dict:
+                        new_dict[reserve_key] = cfg_dict[reserve_key]
+                cfg_dict = new_dict
 
         return cfg_dict
 
