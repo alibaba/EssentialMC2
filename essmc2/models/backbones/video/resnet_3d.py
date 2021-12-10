@@ -235,16 +235,16 @@ class ResNet3D(nn.Module):
 
 
 @BACKBONES.register_function("ResNetR2D3D")
-def get_resnet_r2d3d(depth=18):
+def get_resnet_r2d3d(depth=18, **kwargs):
     return BACKBONES.build(dict(
         type="ResNet3D",
         depth=depth,
-        bn_params=dict(eps=1e-5)
+        **kwargs
     ))
 
 
 @BACKBONES.register_function("ResNet2Plus1d")
-def get_resnet3d_2plus1d(depth=10):
+def get_resnet3d_2plus1d(depth=10, **kwargs):
     return BACKBONES.build(dict(
         type="ResNet3D",
         depth=depth,
@@ -255,12 +255,12 @@ def get_resnet3d_2plus1d(depth=10):
         expansion_ratio=2,
         stem_name="R2Plus1DStem",
         branch_name="R2Plus1DBranch",
-        bn_params=dict(eps=1e-5),
+        **kwargs
     ))
 
 
 @BACKBONES.register_function("ResNet3D_CSN")
-def get_resnet3d_csn(depth=152):
+def get_resnet3d_csn(depth=152, **kwargs):
     return BACKBONES.build(dict(
         type="ResNet3D",
         depth=depth,
@@ -271,12 +271,12 @@ def get_resnet3d_csn(depth=152):
         expansion_ratio=4,
         stem_name="DownSampleStem",
         branch_name="CSNBranch",
-        bn_params=dict(eps=1e-5, momentum=0.1),
+        **kwargs
     ))
 
 
 @BACKBONES.register_function("ResNet3D_TAda")
-def get_resnet3d_TAda(depth=50):
+def get_resnet3d_TAda(depth=50, **kwargs):
     return BACKBONES.build(dict(
         type="ResNet3D",
         depth=depth,
@@ -293,5 +293,5 @@ def get_resnet3d_TAda(depth=50):
             pool_k=(3, 1, 1)
         ),
         init_cfg=dict(name="kaiming"),
-        bn_params=dict(eps=1e-5)
+        **kwargs
     ))
