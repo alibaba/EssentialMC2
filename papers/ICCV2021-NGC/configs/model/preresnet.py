@@ -1,0 +1,20 @@
+model = dict(
+    type="NGCNetwork",
+    backbone=dict(
+        type="PreResNet",
+        depth=18,
+        use_pretrain=False
+    ),
+    neck=dict(
+        type="GlobalAveragePooling"
+    ),
+    head=dict(
+        type="NoisyContrastHead",
+        in_channels=512,
+        num_classes=10,
+        out_feat_dim=64
+    ),
+    num_classes=10,
+    alpha=8.0,
+    data_parallel=False
+)

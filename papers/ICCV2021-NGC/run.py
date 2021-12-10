@@ -4,18 +4,14 @@ import argparse
 import copy
 import os
 import os.path as osp
-import sys
 import time
 
 from torch.utils.data import DataLoader
 
-# For essmc2 package, TODO: make essmc2 a python package
-sys.path.insert(0, osp.dirname(osp.dirname(osp.dirname(osp.abspath(__file__)))))
-
 from essmc2 import Config, DATASETS, MODELS, SOLVERS, get_logger
+from essmc2.utils.ext_module import import_ext_module
 from essmc2.utils.logger import init_logger
 from essmc2.utils.random import set_random_seed
-from essmc2.utils.ext_module import import_ext_module
 
 # Import NGC impls
 import_ext_module("./impls")
