@@ -35,8 +35,8 @@ def update_openset_data(hyper_params):
                 cifar_type=hyper_params['dataset_name'],
                 noise_mode=hyper_params['noise_mode'],
                 noise_ratio=hyper_params['noise_ratio'],
-                ood_noise_name=hyper_params['open_noise_name'],
-                ood_noise_root_dir=hyper_params['open_noise_root'],
+                ood_noise_name=hyper_params['ood_noise_name'],
+                ood_noise_root_dir=hyper_params['ood_noise_root_dir'],
                 ood_noise_num=hyper_params['ood_noise_num_train']
             )
         ),
@@ -46,8 +46,8 @@ def update_openset_data(hyper_params):
             dataset=dict(
                 root_dir=hyper_params['dataset_root'],
                 cifar_type=hyper_params['dataset_name'],
-                ood_noise_name=hyper_params['open_noise_name'],
-                ood_noise_root_dir=hyper_params['open_noise_root'],
+                ood_noise_name=hyper_params['ood_noise_name'],
+                ood_noise_root_dir=hyper_params['ood_noise_root_dir'],
                 ood_noise_num=hyper_params['ood_noise_num_test']
             )
         ),

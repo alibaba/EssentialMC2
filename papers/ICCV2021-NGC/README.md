@@ -19,6 +19,7 @@ Hyper parameters can be found in configs folder.
 * Install requirements by
 
 ```
+cd papers/ICCV2021-NGC
 pip install -r requirements.txt
 ```
 
@@ -35,13 +36,7 @@ cd ..
 * Run
 
 ```
-python run.py --config config/cifar10_sym.py --work_dir work_cifar10_sym
-```
-
-* Resume from checkpoint
-
-```
-python run.py --config config/cifar10_sym.py --work_dir work_cifar10_sym --resume_from work_cifar10_sym/epoch-20.pth
+python run.py --config configs/cifar10_sym.py
 ```
 
 * Change random seed
