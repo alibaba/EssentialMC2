@@ -67,7 +67,7 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
             spatial_id = tmp % self.spatial_crops
             num_clips = self.temporal_crops
 
-        sample_info = self._get(index)
+        sample_info = self._get(actual_index)
         sample_info["meta"]["clip_id"] = clip_id
         sample_info["meta"]["num_clips"] = num_clips
         crop_list = ["cc", "ll", "rr", "tl", "tr", "bl", "br"]
