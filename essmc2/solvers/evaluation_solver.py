@@ -164,7 +164,7 @@ class EvaluationSolver(BaseSolver):
     def run_epoch(self, data_loaders):
         self.max_epochs = 1
         self.logger.info(f"Begin to evaluate ...")
-        self.run_eval_epoch(data_loaders["val"])
+        self.run_eval_epoch(data_loaders["eval"])
 
     def load_checkpoint(self, checkpoint: dict):
         self.model.load_state_dict(checkpoint["state_dict"])

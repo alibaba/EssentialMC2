@@ -51,8 +51,15 @@ def _load_hmdb51(anno_dir, split_id=1, mode='train'):
 
 @DATASETS.register_class()
 class Hmdb51(BaseVideoDataset):
+    def __init__(self, split_id=1, **kwargs):
+        kwargs['_get_samples'] = False
+        super(Hmdb51, self).__init__(**kwargs)
+        self.split_id = split_id
+
+        self._get_samples()
+
     def _get_samples(self):
-        self._samples = _load_hmdb51(self.annotation_dir, mode=self.mode)
+        self._samples = _load_hmdb51(self.annotation_dir, split_id=self.split_id, mode=self.mode)
 
     def _get(self, index: int):
         video_info = self._samples[index]

@@ -11,14 +11,20 @@ from ..registry import HEADS
 class ClassifierHead(nn.Module):
     def __init__(self,
                  dim,
-                 num_classes):
+                 num_classes,
+                 dropout_rate=0):
         super().__init__()
         self.dim = dim
         self.num_classes = num_classes
 
+        if dropout_rate > 0.0:
+            self.dropout = nn.Dropout(dropout_rate)
+
         self.fc = nn.Linear(dim, num_classes)
 
     def forward(self, x):
+        if hasattr(self, 'dropout'):
+            x = self.dropout(x)
         return self.fc(x)
 
 

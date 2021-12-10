@@ -8,9 +8,6 @@ import time
 from functools import partial
 
 import torch.cuda
-from torch.nn.parallel import DataParallel, DistributedDataParallel
-from torch.utils.data import DataLoader, DistributedSampler
-
 from essmc2 import Config, DATASETS, MODELS, SOLVERS, get_logger
 from essmc2.utils.collate import gpu_batch_collate
 from essmc2.utils.distribute import init_dist, get_dist_info
@@ -19,39 +16,56 @@ from essmc2.utils.file_systems import FS, LocalFs
 from essmc2.utils.logger import init_logger
 from essmc2.utils.random import set_random_seed
 from essmc2.utils.sampler import MultiFoldDistributedSampler
+from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data import DataLoader, DistributedSampler
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", required=True, type=str)
-    parser.add_argument("--work_dir", default="./work_dir", type=str)
-    parser.add_argument("--seed", default=123, type=int)
-    parser.add_argument("--resume_from", type=str)
-    parser.add_argument("--data_root_dir", type=str)
-    parser.add_argument("--annotation_dir", type=str)
-    parser.add_argument("--backbone_pretrain", type=str)
+    parser.add_argument("--config", required=True, type=str, help="""
+    path to config file, must be a local file
+    """)
+    parser.add_argument("--work_dir", default="./work_dir", type=str, help="""
+    directory to save outputs, default is ./work_dir
+    """)
+    parser.add_argument("--seed", default=123, type=int, help="""
+    random seed, default is 123
+    """)
+    parser.add_argument("--resume_from", type=str, help="""
+    path to checkpoint for resuming training, default is None
+    """)
+    parser.add_argument("--data_root_dir", type=str, help="""
+    root directory to load image, video or text, default is None
+    """)
+    parser.add_argument("--annotation_dir", type=str, help="""
+    directory to load annotations, default is None
+    """)
+    parser.add_argument("--pretrain", type=str, help="""
+    path to pretrained model, default is None
+    """)
     parser.add_argument("--dist_launcher", type=str, help="""
-    Distribute Launcher, etc 
+    distribute launcher, etc 
         pytorch(use pytorch torch.distributed.launch), 
         pai(Platform of Artificial Intelligence in Alibaba), 
         slurm,
         ...
+    default is None
     """)
     parser.add_argument("--dist_backend", default="nccl", type=str, help="""
-    Distribute backend, etc
+    distribute backend, etc
         nccl(default),
         gloo,
-        accl(Powered by pai and ais),
         ...
+    default is None
     """)
     parser.add_argument("--local_rank", default=-1, type=int, help="""
-    Argument for command torch.distributed.launch or other distribute systems.
+    argument for command torch.distributed.launch or other distribute systems, default is -1
     """)
     parser.add_argument("--ext_module", default="", type=str, help="""
-    Extension module path to be imported for inside custom modules.
+    extension module path to be imported for custom modules, default is empty
     """)
     parser.add_argument("--user_parameters", type=str, help="""
-    User script to hack cfg. Make it simpler in a string, such as 'cfg.a=100;cfg.b=200;'
+    user's python script to hack cfg, make it simpler in one line python statement, such as 'cfg.a=100;cfg.b=200', default is None
     """)
     return parser.parse_args()
 
@@ -96,8 +110,8 @@ def get_data(cfg, logger):
     # Load Dataloader
     pin_memory = cfg.data.get("pin_memory") or False
     if cfg.dist.distributed:
-        if (cfg.data["train"].get("num_folds") or 1) > 1:
-            num_folds = cfg.data["train"].get("num_folds")
+        if (cfg.solver.get("num_folds") or 1) > 1:
+            num_folds = cfg.solver.get("num_folds")
             train_sampler = MultiFoldDistributedSampler(train_dataset, num_folds, world_size, rank,
                                                         shuffle=True)
         else:
@@ -158,7 +172,7 @@ def get_data(cfg, logger):
 
     data = dict(train=train_dataloader)
     if eval_dataloader:
-        data["val"] = eval_dataloader
+        data["eval"] = eval_dataloader
 
     return data
 
@@ -198,21 +212,17 @@ def main():
     if args.seed is not None:
         cfg.seed = args.seed
     # # Model
-    if args.backbone_pretrain is not None:
-        cfg.model["use_pretrain"] = True
-        cfg.model["load_from"] = args.backbone_pretrain
+    if args.pretrain is not None:
+        cfg.model.pretrain = args.pretrain
     # # Datasets
     if args.data_root_dir is not None:
         data_root_dir = args.data_root_dir
         annotation_dir = args.annotation_dir
-        cfg.data["train"]["dataset"]["data_root_dir"] = data_root_dir
-        cfg.data["train"]["dataset"]["annotation_dir"] = annotation_dir
+        cfg.data.train.dataset.data_root_dir = data_root_dir
+        cfg.data.train.dataset.annotation_dir = annotation_dir
         if "eval" in cfg.data:
-            cfg.data["eval"]["dataset"]["data_root_dir"] = data_root_dir
-            cfg.data["eval"]["dataset"]["annotation_dir"] = annotation_dir
-        if "test" in cfg.data:
-            cfg.data["test"]["dataset"]["data_root_dir"] = data_root_dir
-            cfg.data["test"]["dataset"]["annotation_dir"] = annotation_dir
+            cfg.data.eval.dataset.data_root_dir = data_root_dir
+            cfg.data.eval.dataset.annotation_dir = annotation_dir
     # # Resume
     if args.resume_from is not None:
         cfg.solver["resume_from"] = args.resume_from

@@ -32,6 +32,7 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
                  temporal_crops=1,
                  spatial_crops=1,
                  fix_len=None,
+                 _get_samples=True,
                  **kwargs):
         super(BaseVideoDataset, self).__init__(**kwargs)
 
@@ -44,7 +45,8 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
         self._samples = []
         self._spatial_temporal_index = []
 
-        self._get_samples()
+        if _get_samples:
+            self._get_samples()
 
     @abstractmethod
     def _get_samples(self):
