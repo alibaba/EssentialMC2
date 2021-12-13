@@ -59,7 +59,7 @@ test_pipeline = [
         scale=(224 / 256, 224 / 256),
     ),
     dict(type='NormalizeVideo', mean=MEAN, std=STD),
-    dict(type="Select", keys=["video", "gt_label"])
+    dict(type="Select", keys=["video", "gt_label"], meta_keys=['video_path'])
 ]
 train = dict(
     type='Hmdb51',
