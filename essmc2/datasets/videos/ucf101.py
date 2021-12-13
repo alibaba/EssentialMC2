@@ -46,15 +46,10 @@ def _load_ucf101(anno_dir, split_id=1, mode='train'):
 
 @DATASETS.register_class()
 class UCF101(BaseVideoDataset):
-    def _get_samples(self):
-        self._samples = _load_ucf101(self.annotation_dir, mode=self.mode)
+    def __init__(self, split_id=1, **kwargs):
+        kwargs['_get_samples'] = False
+        super(UCF101, self).__init__(**kwargs)
+        self.split_id = split_id
 
-    def _get(self, index: int):
-        video_info = self._samples[index]
-        return {
-            "meta": {
-                "prefix": self.data_root_dir,
-                "video_path": video_info["video_path"]
-            },
-            "gt_label": np.array(video_info["gt_label"], dtype=np.int64)
-        }
+    def _get_samples(self):
+        self._samples = _load_ucf101(self.annotation_dir, split_id=self.split_id, mode=self.mode)
