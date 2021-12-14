@@ -37,6 +37,7 @@ class BaseFs(object, metaclass=ABCMeta):
     @abstractmethod
     def remove_local_file(self, local_path):
         """ Delete local file is used, avoid too much space usage.
+        This api should be used after get_object_to_local_file, and only affects production of get_object_to_local_file.
 
         Args:
             local_path (str): result returned by `get_local_file` function
@@ -109,6 +110,10 @@ class BaseFs(object, metaclass=ABCMeta):
 
     @abstractmethod
     def exists(self, target_path):
+        pass
+
+    @abstractmethod
+    def remove(self, target_path):
         pass
 
     def _clear(self):
