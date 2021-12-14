@@ -80,12 +80,14 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
 
     def _get(self, index: int):
         video_info = self._samples[index]
-        return {
+        ret = {
             "meta": {
                 "prefix": self.data_root_dir,
                 "video_path": video_info["video_path"]
             },
-            "gt_label": np.array(video_info["gt_label"], dtype=np.int64)
         }
+        if 'gt_label' in video_info:
+            ret['gt_label'] = np.array(video_info["gt_label"], dtype=np.int64)
+        return ret
 
 
