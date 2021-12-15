@@ -1,7 +1,7 @@
 _delete_ = ['MEAN', 'STD', 'train_dataset', 'test_dataset']
 
-MEAN = (0.4914, 0.4822, 0.4465)
-STD = (0.2023, 0.1994, 0.2010)
+MEAN = (0.507, 0.487, 0.441)
+STD = (0.267, 0.256, 0.276)
 
 train_dataset = dict(
     type='CifarNoisyDataset',

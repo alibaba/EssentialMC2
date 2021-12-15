@@ -3,6 +3,7 @@ from _updater import update_openset_data, update_model, update_solver
 _base_ = ['./data/cifar100_noise_openset.py',
           './model/preresnet.py',
           './solver/default_solver.py']
+_delete_ = 'hyper_params'
 
 hyper_params = dict(
     seed=123,
