@@ -3,6 +3,7 @@ from _updater import update_webvision_data, update_model, update_solver
 _base_ = ['./data/webvision.py',
           './model/inceptionresnetv2.py',
           './solver/default_solver.py']
+_delete_ = 'hyper_params'
 
 hyper_params = dict(
     seed=123,
