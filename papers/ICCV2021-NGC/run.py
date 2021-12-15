@@ -62,7 +62,7 @@ if __name__ == "__main__":
     logger.info(f"Built train dataset {train_dataset}")
 
     # when use ood noise, carefully check train and test dataset will not use same openset instances
-    if cfg.hyper_params["openset"] and cfg.data['test']['dataset']['type'] == "CifarNoisyOpensetDataset":
+    if cfg.solver.hyper_params["openset"] and cfg.data['test']['dataset']['type'] == "CifarNoisyOpensetDataset":
         cfg.data['test']['dataset']['train_used_idx'] = train_dataset.openset_select_ids
     test_dataset = DATASETS.build(cfg.data['test']['dataset'])
     logger.info(f"Built test dataset {test_dataset}")
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     eval_dataset.pipeline = test_dataset.pipeline
     logger.info(f"Built eval dataset {eval_dataset}")
 
-    if cfg.hyper_params["dataset_name"] == "webvision" and "imagenet" in cfg.data:
+    if cfg.solver.hyper_params["dataset_name"] == "webvision" and "imagenet" in cfg.data:
         imagenet_dataset = DATASETS.build(cfg.data["imagenet"]["dataset"])
         logger.info(f"Built imagenet dataset {imagenet_dataset}")
     else:
