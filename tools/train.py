@@ -4,8 +4,11 @@
 import argparse
 import os
 import os.path as osp
+import sys
 import time
 from functools import partial
+
+sys.path.insert(0, osp.dirname(osp.dirname(__file__)))
 
 import torch.cuda
 from essmc2 import Config, DATASETS, MODELS, SOLVERS, get_logger
@@ -107,7 +110,7 @@ def get_data(cfg, logger):
                                                         shuffle=True)
         else:
             train_sampler = DistributedSampler(train_dataset, world_size, rank, shuffle=True)
-        collate_fn = partial(gpu_batch_collate, device_id=rank)
+        collate_fn = partial(gpu_batch_collate, device_id=rank if use_pytorch_launcher else 0)
         drop_last = True
         train_worker_init_fn = partial(worker_init_fn,
                                        seed=cfg.seed,
@@ -135,7 +138,7 @@ def get_data(cfg, logger):
 
     if eval_dataset is not None:
         eval_worker_init_fn = partial(worker_init_fn, file_systems=cfg.get('file_systems'))
-        collate_fn = partial(gpu_batch_collate, device_id=rank)
+        collate_fn = partial(gpu_batch_collate, device_id=rank if use_pytorch_launcher else 0)
         if cfg.dist.distributed:
             eval_sampler = DistributedSampler(eval_dataset, world_size, rank, shuffle=False)
         else:
@@ -248,8 +251,6 @@ def main():
     if random_seed is not None:
         logger.info(f"Set random seed to {random_seed}")
         set_random_seed(random_seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
     torch.multiprocessing.set_start_method('spawn')
 
     # Load Model

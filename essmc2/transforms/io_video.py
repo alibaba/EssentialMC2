@@ -4,10 +4,11 @@ import os.path as osp
 import random
 
 import decord
+import numpy as np
 import torch
 from decord import VideoReader
-from essmc2.utils.file_systems import FS
 
+from essmc2.utils.file_systems import FS
 from .registry import TRANSFORMS
 
 decord.bridge.set_bridge('torch')
@@ -154,7 +155,7 @@ class DecodeVideoToTensor(object):
                 # Decord gives inconsistent result for avi files. Getting full frames will fix it, although slower.
                 # See https://github.com/dmlc/decord/issues/195
                 if video_path.lower().endswith('avi'):
-                    full_decode_list = torch.arange(0, torch.max(decode_list).item() + 1)
+                    full_decode_list = list(range(0, torch.max(decode_list).item() + 1))
                     full_frames = vr.get_batch(full_decode_list)
                     frames = full_frames[decode_list].clone()
                 else:

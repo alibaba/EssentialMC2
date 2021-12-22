@@ -8,14 +8,16 @@ import time
 from functools import partial
 
 import torch.cuda
+from torch.utils.data import DataLoader, DistributedSampler
+
 from essmc2 import Config, DATASETS, MODELS, SOLVERS, get_logger
 from essmc2.utils.collate import gpu_batch_collate
+from essmc2.utils.data import worker_init_fn
 from essmc2.utils.distribute import init_dist, get_dist_info
 from essmc2.utils.ext_module import import_ext_module
 from essmc2.utils.file_systems import FS, LocalFs
 from essmc2.utils.logger import init_logger
 from essmc2.utils.random import set_random_seed
-from torch.utils.data import DataLoader, DistributedSampler
 
 
 def parse_args():
@@ -78,7 +80,7 @@ def get_data(cfg, logger):
 
     # Load Dataloader
     pin_memory = cfg.data.get("pin_memory") or False
-    collate_fn = partial(gpu_batch_collate, device_id=rank)
+    collate_fn = partial(gpu_batch_collate, device_id=rank if use_pytorch_launcher else 0)
     eval_worker_init_fn = partial(worker_init_fn, file_systems=cfg.get('file_systems'))
     if cfg.dist.distributed:
         eval_sampler = DistributedSampler(eval_dataset, world_size, rank, shuffle=False)
@@ -174,8 +176,7 @@ def main():
     if random_seed is not None:
         logger.info(f"Set random seed to {random_seed}")
         set_random_seed(random_seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+
     torch.multiprocessing.set_start_method('spawn')
 
     # Load Model
