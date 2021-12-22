@@ -111,7 +111,7 @@ def main():
         import_ext_module(args.ext_module)
 
     # Load config file
-    cfg = Config.load_file(args.config)
+    cfg = Config.load(args.config)
 
     # Load user script to modify cfg
     if args.user_parameters is not None:
