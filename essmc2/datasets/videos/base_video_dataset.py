@@ -53,9 +53,6 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
         raise NotImplementedError
 
     def __getitem__(self, index: int):
-        # For each new worker, init file system now.
-        self._mp_init_fs()
-
         actual_index = index // self.total_clips
         tmp = index - actual_index * self.total_clips
         if self.mode == "train":
