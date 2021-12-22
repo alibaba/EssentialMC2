@@ -3,12 +3,14 @@
 import os.path as osp
 import random
 
+import decord
 import torch
-import torch.utils.dlpack as dlpack
 from decord import VideoReader
-
 from essmc2.utils.file_systems import FS
+
 from .registry import TRANSFORMS
+
+decord.bridge.set_bridge('torch')
 
 
 def _interval_based_sampling(vid_length, vid_fps, target_fps, clip_idx, num_clips, num_frames, interval,
@@ -148,7 +150,16 @@ class DecodeVideoToTensor(object):
                                                            self.sample_minus_interval)
                 else:
                     decode_list = _segment_based_sampling(vid_len, clip_id, num_clips, self.num_frames, clip_id == -1)
-                frames = dlpack.from_dlpack(vr.get_batch(decode_list).to_dlpack()).clone()
+
+                # Decord gives inconsistent result for avi files. Getting full frames will fix it, although slower.
+                # See https://github.com/dmlc/decord/issues/195
+                if video_path.lower().endswith('avi'):
+                    full_decode_list = torch.arange(0, torch.max(decode_list).item() + 1)
+                    full_frames = vr.get_batch(full_decode_list)
+                    frames = full_frames[decode_list].clone()
+                else:
+                    frames = vr.get_batch(decode_list).clone()
+
                 frame_list.append(frames)
 
             if self.repeat == 1:
