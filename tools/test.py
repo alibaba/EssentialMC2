@@ -4,13 +4,12 @@
 import argparse
 import os
 import os.path as osp
-import sys
 import time
 from functools import partial
 
-sys.path.insert(0, osp.dirname(osp.dirname(__file__)))
-
 import torch.cuda
+from torch.utils.data import DataLoader, DistributedSampler
+
 from essmc2 import Config, DATASETS, MODELS, SOLVERS, get_logger
 from essmc2.utils.collate import gpu_batch_collate
 from essmc2.utils.data import worker_init_fn
@@ -19,9 +18,6 @@ from essmc2.utils.ext_module import import_ext_module
 from essmc2.utils.file_systems import FS, LocalFs
 from essmc2.utils.logger import init_logger
 from essmc2.utils.random import set_random_seed
-from essmc2.utils.sampler import MultiFoldDistributedSampler
-from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import DataLoader, DistributedSampler
 
 
 def parse_args():
@@ -31,12 +27,6 @@ def parse_args():
     """)
     parser.add_argument("--work_dir", default="./work_dir", type=str, help="""
     directory to save outputs, default is ./work_dir
-    """)
-    parser.add_argument("--seed", default=123, type=int, help="""
-    random seed, default is 123
-    """)
-    parser.add_argument("--resume_from", type=str, help="""
-    path to checkpoint for resuming training, default is None
     """)
     parser.add_argument("--data_root_dir", type=str, help="""
     root directory to load image, video or text, default is None
@@ -76,15 +66,8 @@ def parse_args():
 
 def get_model(cfg, logger):
     model = MODELS.build(cfg.model)
-    if cfg.dist.distributed and cfg.dist.get("sync_bn") is True:
-        logger.info("Convert BatchNorm to Synchronized BatchNorm...")
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     model = model.cuda()
-    if cfg.dist.distributed:
-        model = DistributedDataParallel(model,
-                                        device_ids=[torch.cuda.current_device()],
-                                        output_device=torch.cuda.current_device())
     return model
 
 
@@ -92,77 +75,32 @@ def get_data(cfg, logger):
     use_pytorch_launcher = cfg.dist.distributed and cfg.dist.launcher == 'pytorch'
     rank, world_size = get_dist_info()
 
-    train_dataset = DATASETS.build(cfg.data['train']['dataset'])
-    logger.info(f"Built train dataset {train_dataset}")
-    if "eval" in cfg.data:
-        eval_dataset = DATASETS.build(cfg.data["eval"]["dataset"])
-        logger.info(f"Built eval dataset {eval_dataset}")
-    else:
-        eval_dataset = None
+    eval_dataset = DATASETS.build(cfg.data["eval"]["dataset"])
+    logger.info(f"Built eval dataset {eval_dataset}")
 
     # Load Dataloader
     pin_memory = cfg.data.get("pin_memory") or False
+    collate_fn = partial(gpu_batch_collate, device_id=rank if use_pytorch_launcher else 0)
+    eval_worker_init_fn = partial(worker_init_fn, file_systems=cfg.get('file_systems'))
     if cfg.dist.distributed:
-        shuffle = False
-        if (cfg.solver.get("num_folds") or 1) > 1:
-            num_folds = cfg.solver.get("num_folds")
-            train_sampler = MultiFoldDistributedSampler(train_dataset, num_folds, world_size, rank,
-                                                        shuffle=True)
-        else:
-            train_sampler = DistributedSampler(train_dataset, world_size, rank, shuffle=True)
-        collate_fn = partial(gpu_batch_collate, device_id=rank if use_pytorch_launcher else 0)
-        drop_last = True
-        train_worker_init_fn = partial(worker_init_fn,
-                                       seed=cfg.seed,
-                                       worker_device=f'cuda:{rank}' if use_pytorch_launcher else None,
-                                       file_systems=cfg.get('file_systems'))
+        eval_sampler = DistributedSampler(eval_dataset, world_size, rank, shuffle=False)
     else:
-        shuffle = True
-        train_sampler = None
-        collate_fn = None
-        drop_last = False
-        train_worker_init_fn = partial(worker_init_fn, seed=cfg.seed, file_systems=cfg.get('file_systems'))
+        eval_sampler = None
 
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=cfg.data.train.samples_per_gpu,
-        shuffle=shuffle,
-        sampler=train_sampler,
-        num_workers=cfg.data.train.workers_per_gpu,
+    eval_dataloader = DataLoader(
+        eval_dataset,
+        batch_size=cfg.data.eval.samples_per_gpu,
+        shuffle=False,
+        sampler=eval_sampler,
+        num_workers=cfg.data.eval.workers_per_gpu,
         collate_fn=collate_fn,
         pin_memory=pin_memory,
-        drop_last=drop_last,
-        worker_init_fn=train_worker_init_fn
+        drop_last=False,
+        worker_init_fn=eval_worker_init_fn
     )
-    logger.info(f"Built train dataloader with len {len(train_dataloader)}")
+    logger.info(f"Built eval dataloader with len {len(eval_dataloader)}")
 
-    if eval_dataset is not None:
-        eval_worker_init_fn = partial(worker_init_fn, file_systems=cfg.get('file_systems'))
-        collate_fn = partial(gpu_batch_collate, device_id=rank if use_pytorch_launcher else 0)
-        if cfg.dist.distributed:
-            eval_sampler = DistributedSampler(eval_dataset, world_size, rank, shuffle=False)
-        else:
-            eval_sampler = None
-        eval_dataloader = DataLoader(
-            eval_dataset,
-            batch_size=cfg.data.eval.samples_per_gpu,
-            shuffle=False,
-            sampler=eval_sampler,
-            num_workers=cfg.data.eval.workers_per_gpu,
-            collate_fn=collate_fn,
-            pin_memory=pin_memory,
-            drop_last=False,
-            worker_init_fn=eval_worker_init_fn
-        )
-
-        logger.info(f"Built eval dataloader with len {len(eval_dataloader)}")
-
-    else:
-        eval_dataloader = None
-
-    data = dict(train=train_dataloader)
-    if eval_dataloader:
-        data["eval"] = eval_dataloader
+    data = dict(eval=eval_dataloader)
 
     return data
 
@@ -198,26 +136,13 @@ def main():
     config_name = osp.splitext(osp.basename(args.config))[0]
     work_dir = osp.join(work_dir, config_name)
     cfg.solver["work_dir"] = work_dir
-    # # Seed
-    if cfg.get("seed") is None:
-        cfg.seed = 0
-    if args.seed is not None:
-        cfg.seed = args.seed
     # # Model
     if args.pretrain is not None:
         cfg.model.pretrain = args.pretrain
     # # Datasets
     if args.data_root_dir is not None:
-        data_root_dir = args.data_root_dir
-        annotation_dir = args.annotation_dir
-        cfg.data.train.dataset.data_root_dir = data_root_dir
-        cfg.data.train.dataset.annotation_dir = annotation_dir
-        if "eval" in cfg.data:
-            cfg.data.eval.dataset.data_root_dir = data_root_dir
-            cfg.data.eval.dataset.annotation_dir = annotation_dir
-    # # Resume
-    if args.resume_from is not None:
-        cfg.solver["resume_from"] = args.resume_from
+        cfg.data.eval.dataset.data_root_dir = args.data_root_dir
+        cfg.data.eval.dataset.annotation_dir = args.annotation_dir
     # ------ Done Change config by args and specify task ----- #
 
     # Configure file system client
@@ -242,7 +167,7 @@ def main():
     run_id = int(time.time())
     log_file = os.path.join(work_dir, f"{run_id}.log")
     logger = get_logger()
-    init_logger(logger, log_file, cfg.dist.launcher)
+    init_logger(logger, log_file, args.dist_launcher)
     logger.info(f"Running task with work directory: {work_dir}")
     logger.info(f"Running task with config: \n{cfg}")
 
@@ -267,6 +192,7 @@ def main():
 
     # Load Solver
     logger.info("Building solver...")
+    cfg.solver.type = "EvaluationSolver"
     solver = SOLVERS.build(model, cfg.solver, logger=logger)
     logger.info(f"Built solver: {solver}")
 

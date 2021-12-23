@@ -11,12 +11,10 @@ from ..transforms.registry import build_pipeline, TRANSFORMS
 class BaseDataset(Dataset, metaclass=ABCMeta):
     def __init__(self,
                  mode='test',
-                 pipeline=None,
-                 fs_cfg=None):
+                 pipeline=None):
         super(BaseDataset, self).__init__()
         self.mode = mode
         self.pipeline = build_pipeline(pipeline, TRANSFORMS)
-        self.fs_cfg = fs_cfg
 
     def __getitem__(self, index: int):
         item = self._get(index)
@@ -28,9 +26,3 @@ class BaseDataset(Dataset, metaclass=ABCMeta):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}: mode={self.mode}, len={len(self)}"
-
-    def _mp_init_fs(self):
-        """ In multiprocess context, file system should be inited in each worker.
-        It should be invoked before invoking io op in transform pipeline.
-        """
-        FS.init_fs_client(self.fs_cfg)

@@ -4,6 +4,31 @@ from collections import OrderedDict
 
 import torch
 
+from .random import set_random_seed
+from .file_systems import FS
+
+
+def worker_init_fn(worker_id, seed=None, worker_device=None, file_systems=None):
+    """ Init dataloader worker.
+    0. set random seed;
+    1. set data worker cuda device;
+    2. set file systems in worker context;
+
+    Args:
+        worker_id (int): Dataloader worker id.
+        seed (Optional[int[): Random seed to this worker.
+        worker_device (Optional[str]): Dataloader worker default cuda device.
+        file_systems (Optional[Union[dict, List[dict]]]: File system config.
+
+    Returns:
+
+    """
+    if seed is not None:
+        set_random_seed(seed)
+    if worker_device is not None:
+        torch.cuda.set_device(worker_device)
+    FS.init_fs_client(file_systems)
+
 
 def transfer_data_to_numpy(data_map: dict) -> dict:
     """ Transfer tensors in data_map to numpy type.

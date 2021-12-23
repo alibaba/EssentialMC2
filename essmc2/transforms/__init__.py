@@ -1,6 +1,6 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-from .compose import compose
+from .compose import Compose
 from .identity import Identity
 from .image import ImageTransform, RandomResizedCrop, RandomHorizontalFlip, Normalize, ImageToTensor
 from .io import LoadPILImageFromFile, LoadCvImageFromFile, LoadImageFromFile
