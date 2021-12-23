@@ -1,6 +1,6 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 
 version_info = tuple(int(x) for x in __version__.split(".")[0:3])
 
