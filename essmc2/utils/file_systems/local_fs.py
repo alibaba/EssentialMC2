@@ -50,4 +50,10 @@ class LocalFs(BaseFs):
     def exists(self, target_path):
         return os.path.exists(target_path)
 
+    def remove(self, target_path):
+        if os.path.exists(target_path):
+            os.remove(target_path)
+
+
+
 

@@ -83,3 +83,8 @@ class HttpFs(BaseFs):
             return True
         except Exception as e:
             return False
+
+    def remove(self, target_path):
+        raise NotImplemented
+
+

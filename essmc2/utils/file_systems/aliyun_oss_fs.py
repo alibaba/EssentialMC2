@@ -123,3 +123,9 @@ class AliyunOssFs(BaseFs):
         self._init_bucket()
 
         return self.bucket.object_exists(osp.relpath(target_path, self.prefix))
+
+    def remove(self, target_path):
+        self._init_bucket()
+
+        if self.exists(target_path):
+            self.bucket.delete_object(osp.relpath(target_path, self.prefix))
