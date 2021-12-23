@@ -60,13 +60,3 @@ class Hmdb51(BaseVideoDataset):
 
     def _get_samples(self):
         self._samples = _load_hmdb51(self.annotation_dir, split_id=self.split_id, mode=self.mode)
-
-    def _get(self, index: int):
-        video_info = self._samples[index]
-        return {
-            "meta": {
-                "prefix": self.data_root_dir,
-                "video_path": video_info["video_path"]
-            },
-            "gt_label": np.array(video_info["gt_label"], dtype=np.int64)
-        }

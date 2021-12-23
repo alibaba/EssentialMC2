@@ -77,3 +77,17 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
         if self.fix_len is not None:
             return self.fix_len * self.total_clips
         return len(self._samples) * self.total_clips
+
+    def _get(self, index: int):
+        video_info = self._samples[index]
+        ret = {
+            "meta": {
+                "prefix": self.data_root_dir,
+                "video_path": video_info["video_path"]
+            },
+        }
+        if 'gt_label' in video_info:
+            ret['gt_label'] = np.array(video_info["gt_label"], dtype=np.int64)
+        return ret
+
+
