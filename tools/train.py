@@ -251,6 +251,8 @@ def main():
     if random_seed is not None:
         logger.info(f"Set random seed to {random_seed}")
         set_random_seed(random_seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     torch.multiprocessing.set_start_method('spawn')
 
     # Load Model
