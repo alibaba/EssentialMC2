@@ -2,6 +2,8 @@
 
 from abc import abstractmethod, ABCMeta
 
+import numpy as np
+
 from essmc2.datasets import BaseDataset
 
 
@@ -89,5 +91,3 @@ class BaseVideoDataset(BaseDataset, metaclass=ABCMeta):
         if 'gt_label' in video_info:
             ret['gt_label'] = np.array(video_info["gt_label"], dtype=np.int64)
         return ret
-
-
