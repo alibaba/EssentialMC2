@@ -53,6 +53,8 @@ def test_set_value():
 def test_merge():
     json_file = "../data/utils/config_test.json"
     cfg = Config.load_file(json_file)
+    cfg.none_value = None
+    cfg.not_none_value = "Not none"
 
     json_str = """
     {
@@ -64,6 +66,8 @@ def test_merge():
     }
     """
     cfg_add = Config.loads(json_str, loads_format="json")
+    cfg_add.none_value = 1
+    cfg_add.not_none_value = None
 
     cfg_new = Config.merge_a_into_b(cfg_add, cfg)
 
@@ -72,3 +76,5 @@ def test_merge():
     assert cfg_new.h == "NewKey"
     assert cfg_new.g == cfg.g
     assert cfg_new.f.mean == cfg.f.mean
+    assert cfg_new.none_value == 1
+    assert cfg_new.not_none_value is None
