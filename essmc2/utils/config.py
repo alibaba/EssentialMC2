@@ -23,6 +23,7 @@ import sys
 import warnings
 from importlib import import_module
 from typing import Optional, Type
+import numbers
 
 from addict import Dict
 from yapf.yapflib.yapf_api import FormatCode
@@ -85,14 +86,19 @@ class ConfigDict(Dict):
         for key, value in a.items():
             if key in b.keys():
                 value_b = b[key]
-                if type(value) is ConfigDict:
-                    if type(value_b) is not ConfigDict:
-                        raise ValueError(f"Except source type {type(value_b)}, got {type(value)}")
-                    b[key] = ConfigDict.merge_a_into_b(value, value_b)
-                else:
-                    if type(value) != type(value_b):
-                        raise ValueError(f"Except source type {type(value_b)}, got {type(value)}")
+                if type(value_b) is type(None):
                     b[key] = value
+                elif type(value) is type(None):
+                    b[key] = None
+                elif isinstance(value, numbers.Number) and isinstance(value_b, numbers.Number):
+                    b[key] = value
+                elif type(value) == type(value_b):
+                    if type(value) is ConfigDict:
+                        b[key] = ConfigDict.merge_a_into_b(value, value_b)
+                    else:
+                        b[key] = value
+                else:
+                    raise ValueError(f"Except source type {type(value_b)}, got {type(value)}")
             else:
                 b[key] = value
 
