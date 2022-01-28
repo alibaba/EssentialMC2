@@ -1,0 +1,3 @@
+[submodule "papers/pytorch-video-understanding"]
+	path = papers/pytorch-video-understanding
+	url = https://github.com/alibaba-mmai-research/pytorch-video-understanding.git
