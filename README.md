@@ -37,19 +37,18 @@ Pretrained models can be found in the [MODEL_ZOO.md](MODEL_ZOO.md).
 
 ### SOTA Tasks
 
+- TAda! Temporally-Adaptive Convolutions for Video Understanding <br>
+[[Project](papers/ICLR2022-TAdaConv/projects/tada/README.md)] [[Paper](https://arxiv.org/pdf/2110.06178.pdf)] [[Website](https://tadaconv-iclr2022.github.io)] **ICLR 2022**
 - NGC: A Unified Framework for Learning with Open-World Noisy Data <br>
 [[Project](papers/ICCV2021-NGC/README.md)] [[Paper](https://arxiv.org/abs/2108.11035)] **ICCV 2021**
 - Self-supervised Motion Learning from Static Images <br>
 [[Project](papers/CVPR2021-MOSI/README.md)] [[Paper](https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Self-Supervised_Motion_Learning_From_Static_Images_CVPR_2021_paper)] **CVPR 2021**
 - A Stronger Baseline for Ego-Centric Action Detection <br>
-[[Project](papers/pytorch-video-understanding/projects/epic-kitchen-tal/README.md)] [[Paper](https://arxiv.org/pdf/2106.06942)] 
+[[Project](papers/ICLR2022-TAdaConv/projects/epic-kitchen-tal/README.md)] [[Paper](https://arxiv.org/pdf/2106.06942)] 
 **First-place** submission to [EPIC-KITCHENS-100 Action Detection Challenge](https://competitions.codalab.org/competitions/25926#results)
 - Towards Training Stronger Video Vision Transformers for EPIC-KITCHENS-100 Action Recognition <br>
-[[Project](papers/pytorch-video-understanding/projects/epic-kitchen-ar/README.md)] [[Paper](https://arxiv.org/pdf/2106.05058)] 
+[[Project](papers/ICLR2022-TAdaConv/projects/epic-kitchen-ar/README.md)] [[Paper](https://arxiv.org/pdf/2106.05058)] 
 **Second-place** submission to [EPIC-KITCHENS-100 Action Recognition challenge](https://competitions.codalab.org/competitions/25923#results)
-- TAda! Temporally-Adaptive Convolutions for Video Understanding <br>
-[[Project](papers/pytorch-video-understanding/projects/tada/README.md)] [[Paper](https://arxiv.org/pdf/2110.06178.pdf)] 
-**Preprint**
 
 ### License
 
