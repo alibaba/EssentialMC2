@@ -1,25 +1,36 @@
 # MODEL ZOO
 
-## Kinetics
+## Kinetics 
 
 | Dataset | architecture | depth | init | clips x crops | #frames x sampling rate | acc@1 | acc@5 | checkpoint | config |
 | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ |
-| K400 | TAda2D | R50 | IN-1K | 10 x 3 | 8 x 8 | 76.3 | 92.4 | [[google drive](https://drive.google.com/file/d/1-_Yek3lFYpgahU2Q2ITON4rgqm5Voj2E/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1CzJ82frDeH8P4L55aZdZ-Q)(code:jp7d)] | configs/models/tada_r50_k400.py |
-| K400 | TAda2D | R50 | IN-1K | 10 x 3 | 16 x 5 | 76.9 | 92.7 | [[google drive](https://drive.google.com/file/d/1Phj2mSna27Gv46tJzjw4a51_qum1HW6x/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1GQZmB_ZKwq1NjmVooICa2w)(code:buww)] | configs/models/tada_r50_k400.py |
-| K400 | ViViT Fact. Enc. | B16x2 | IN-21K | 4 x 3 | 32 x 2 | 79.4 | 94.0 | [[google drive](https://drive.google.com/file/d/1xD4uij9DmZojnl1xuWBa-gwm5hUZxDc7/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1iVjKjEMm-6ymUd15ZNqvXw)(code:1t51)] | configs/models/vivit_fac_enc_b16x2_k400.py |
+| K400 | TAda2D | R50 | IN-1K | 10 x 3 | 8 x 8 | 76.7 | 92.6 | [[google drive](https://drive.google.com/file/d/1YsbTKLoDwxtStAsP5oxUMbIsw85NvY0O/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1rPPZtVDlEoftkg-r_Di59w)(code:p06d)] |  [tada2d_8x8.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/tada/k400/tada2d_8x8.yaml) |
+| K400 | TAda2D | R50 | IN-1K | 10 x 3 | 16 x 5 | 77.4 | 93.1 | [[google drive](https://drive.google.com/file/d/1UQDurxakmnDxa5D2tBuTqTH60BVyW3XM/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1MzFCZU1G1JR2ur9gWd3hCg)(code:6k8h)] | [tada2d_16x5.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/tada/k400/tada2d_16x5.yaml) |
+| K400 | ViViT Fact. Enc. | B16x2 | IN-21K | 4 x 3 | 32 x 2 | 79.4 | 94.0 | [[google drive](https://drive.google.com/file/d/1xD4uij9DmZojnl1xuWBa-gwm5hUZxDc7/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1iVjKjEMm-6ymUd15ZNqvXw)(code:1t51)] | [vivit_fac_enc_b16x2.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/epic-kitchen-ar/k400/vivit_fac_enc_b16x2.yaml) |
 
 ## Something-Something
 | Dataset | architecture | depth | init | clips x crops | #frames | acc@1 | acc@5 | checkpoint | config |
 | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ |
-| SSV2 | TAda2D | R50 | IN-1K | 2 x 3 | 8 | 63.8 | 87.7 | [[google drive](https://drive.google.com/file/d/1_OwuPjnVXNoOjkQ2q0NcmSWxCZJGgFTf/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1ITcHcYL6RCN2C7TP_v6cRg)(code:su94)] | configs/models/tada_r50_ssv2.py | 
-| SSV2 | TAda2D | R50 | IN-1K | 2 x 3 | 16 | 65.2 | 89.1 | [[google drive](https://drive.google.com/file/d/1mwINu9ZFUMk1bHt47Xq9CDNnb07PCkG7/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1hXKpTSSpoVDBWpHWhKgjTg)(code:k03n)] | configs/models/tada_r50_ssv2.py | 
+| SSV2 | TAda2D | R50 | IN-1K | 2 x 3 | 8 | 64.2 | 88.0 | [[google drive](https://drive.google.com/file/d/16y6dDf-hcMmJ2jDCV9tRla8aRJZKJXSk/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1CWy35SlWMbKnYqZXESndKg)(code:dlil)] | [tada2d_8f.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/tada/ssv2/tada2d_8f.yaml) | 
+| SSV2 | TAda2D | R50 | IN-1K | 2 x 3 | 16 | 65.6 | 89.1 | [[google drive](https://drive.google.com/file/d/1xwCxuFW6DZ0xpEsp_tFJYQRGuHPJe4uS/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1GKUKyDytaKKeCBAerh-4IQ)(code:f857)] | [tada2d_16f.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/tada/ssv2/tada2d_16f.yaml) | 
 
 ## Epic-Kitchens Action Recognition
 
 | architecture | init | resolution | clips x crops | #frames x sampling rate | action acc@1 | verb acc@1 | noun acc@1 | checkpoint | config |
 | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | 
-| ViViT Fact. Enc.-B16x2 | K700 | 320 | 4 x 3 | 32 x 2 | 46.3 | 67.4 | 58.9 | [[google drive](https://drive.google.com/file/d/1ELvwZYeqdsPmDcX1v7_RbFqbQnvHt9sB/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1zOtIAY6neFshmkPR9SuX8g)(code:rinh)] | configs/models/vivit_fac_enc_b16x2_ek100.py |
-| ir-CSN-R152 | K700 | 224 | 10 x 3 | 32 x 2 | 44.5 | 68.4 | 55.9 | [[google drive](https://drive.google.com/file/d/1YEIhijzN2aFXyfDL34WB6Q9strYP7WaU/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1swVIBJInQ75dUZKV-OJwlg)(code:s0uj)] | configs/models/ir-csn_r152_ek100.py | 
+| ViViT Fact. Enc.-B16x2 | K700 | 320 | 4 x 3 | 32 x 2 | 46.3 | 67.4 | 58.9 | [[google drive](https://drive.google.com/file/d/1ELvwZYeqdsPmDcX1v7_RbFqbQnvHt9sB/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1zOtIAY6neFshmkPR9SuX8g)(code:rinh)] | [vivit_fac_enc.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/epic-kitchen-ar/ek100/vivit_fac_enc.yaml) |
+| ir-CSN-R152 | K700 | 224 | 10 x 3 | 32 x 2 | 44.5 | 68.4 | 55.9 | [[google drive](https://drive.google.com/file/d/1YEIhijzN2aFXyfDL34WB6Q9strYP7WaU/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1swVIBJInQ75dUZKV-OJwlg)(code:s0uj)] | [csn.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/epic-kitchen-ar/ek100/csn.yaml) | 
+
+## Epic-Kitchens Temporal Action Localization
+
+| feature | classification | type | IoU@0.1 | IoU@0.2 | IoU@0.3 | IoU@0.4 | IoU@0.5 | Avg | checkpoint | config |
+| ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | 
+| ViViT | ViViT | Verb | 22.90 | 21.93 | 20.74 | 19.08 | 16.00 | 20.13 | [[google drive](https://drive.google.com/file/d/1O0-kPlPrPfrOiFyFcNbCDbnTfsflFc5z/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1sBu5puPU8mSqklYzsAzZWg)(code:3sud)]| [vivit-os-local.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/epic-kitchen-tal/bmn-epic/vivit-os-local.yaml) |
+| ViViT | ViViT | Noun | 28.95 | 27.38 | 25.52 | 22.67 | 18.95 | 24.69 | [[google drive](https://drive.google.com/file/d/1O0-kPlPrPfrOiFyFcNbCDbnTfsflFc5z/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1sBu5puPU8mSqklYzsAzZWg)(code:3sud)]| [vivit-os-local.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/epic-kitchen-tal/bmn-epic/vivit-os-local.yaml) |
+| ViViT | ViViT | Action | 20.82 | 19.93 | 18.67 | 17.02 | 15.06 | 18.30 | [[google drive](https://drive.google.com/file/d/1O0-kPlPrPfrOiFyFcNbCDbnTfsflFc5z/view?usp=sharing)][[baidu](https://pan.baidu.com/s/1sBu5puPU8mSqklYzsAzZWg)(code:3sud)]| [vivit-os-local.yaml](https://github.com/alibaba-mmai-research/TAdaConv/blob/main/configs/projects/epic-kitchen-tal/bmn-epic/vivit-os-local.yaml) |
+| TAda2D | TAda2D | Verb | 19.70 | 18.49 | 17.41 | 15.50 | 12.78 | 16.78 | [[google drive](https://drive.google.com/file/d/13VhZhUN5p3j7Y0X7ZMQb83dncEx_DBVI/view?usp=sharing)][[baidu](https://pan.baidu.com/s/11Mzrb8qBTF9j-WJaxhf5yw)(code:d01j)]| - | 
+| TAda2D | TAda2D | Noun | 20.54 | 19.32 | 17.94 | 15.77 | 13.39 | 17.39 | [[google drive](https://drive.google.com/file/d/13VhZhUN5p3j7Y0X7ZMQb83dncEx_DBVI/view?usp=sharing)][[baidu](https://pan.baidu.com/s/11Mzrb8qBTF9j-WJaxhf5yw)(code:d01j)]| - | 
+| TAda2D | TAda2D | Action | 15.15 | 14.32 | 13.59 | 12.18 | 10.65 | 13.18 | [[google drive](https://drive.google.com/file/d/13VhZhUN5p3j7Y0X7ZMQb83dncEx_DBVI/view?usp=sharing)][[baidu](https://pan.baidu.com/s/11Mzrb8qBTF9j-WJaxhf5yw)(code:d01j)]| - | 
 
 
 ## MoSI
