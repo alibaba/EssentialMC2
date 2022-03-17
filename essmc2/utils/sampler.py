@@ -77,6 +77,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import math
+from typing import Optional
 
 import torch
 import torch.distributed as dist
@@ -158,3 +159,52 @@ class MultiFoldDistributedSampler(Sampler):
 
     def set_epoch(self, epoch):
         self.epoch = epoch
+
+
+class EvalDistributedSampler(Sampler):
+    """Modified from DistributedSampler.
+
+    Notice!
+    1. This sampler should only be used in test mode.
+    2. This sampler will pad indices or not pad, according to `padding` flag.
+     In no padding mode, the last rank device may get samples less than given batch_size.
+     The last rank device may have less iteration number than other rank.
+     By the way, __len__ function may return a fake number.
+    """
+
+    def __init__(self, dataset, num_replicas: Optional[int] = None,
+                 rank: Optional[int] = None, padding: bool = False) -> None:
+        if num_replicas is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            num_replicas = dist.get_world_size()
+        if rank is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            rank = dist.get_rank()
+        if rank >= num_replicas or rank < 0:
+            raise ValueError(
+                "Invalid rank {}, rank should be in the interval"
+                " [0, {}]".format(rank, num_replicas - 1))
+        self.dataset = dataset
+        self.num_replicas = num_replicas
+        self.rank = rank
+        self.padding = padding
+
+        self.perfect_num_samples = math.ceil(len(self.dataset) / self.num_replicas)
+        self.perfect_total_size = self.perfect_num_samples * self.num_replicas
+
+    def __iter__(self):
+        indices = list(range(len(self.dataset)))
+
+        if self.padding and len(indices) < self.perfect_total_size:
+            padding_size = self.perfect_total_size - len(indices)
+            indices += indices[:padding_size]
+
+        return iter(indices)
+
+    def __len__(self) -> int:
+        return self.perfect_num_samples
+
+    def set_epoch(self, epoch: int) -> None:
+        pass

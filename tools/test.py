@@ -8,7 +8,7 @@ import time
 from functools import partial
 
 import torch.cuda
-from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.data import DataLoader
 
 from essmc2 import Config, DATASETS, MODELS, SOLVERS, get_logger
 from essmc2.utils.collate import gpu_batch_collate
@@ -18,6 +18,7 @@ from essmc2.utils.ext_module import import_ext_module
 from essmc2.utils.file_systems import FS, LocalFs
 from essmc2.utils.logger import init_logger
 from essmc2.utils.random import set_random_seed
+from essmc2.utils.sampler import EvalDistributedSampler
 
 
 def parse_args():
@@ -83,7 +84,7 @@ def get_data(cfg, logger):
     collate_fn = partial(gpu_batch_collate, device_id=rank if use_pytorch_launcher else 0)
     eval_worker_init_fn = partial(worker_init_fn, file_systems=cfg.get('file_systems'))
     if cfg.dist.distributed:
-        eval_sampler = DistributedSampler(eval_dataset, world_size, rank, shuffle=False)
+        eval_sampler = EvalDistributedSampler(eval_dataset, world_size, rank)
     else:
         eval_sampler = None
 

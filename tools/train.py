@@ -19,7 +19,7 @@ from essmc2.utils.ext_module import import_ext_module
 from essmc2.utils.file_systems import FS, LocalFs
 from essmc2.utils.logger import init_logger
 from essmc2.utils.random import set_random_seed
-from essmc2.utils.sampler import MultiFoldDistributedSampler
+from essmc2.utils.sampler import MultiFoldDistributedSampler, EvalDistributedSampler
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -140,7 +140,7 @@ def get_data(cfg, logger):
         eval_worker_init_fn = partial(worker_init_fn, file_systems=cfg.get('file_systems'))
         collate_fn = partial(gpu_batch_collate, device_id=rank if use_pytorch_launcher else 0)
         if cfg.dist.distributed:
-            eval_sampler = DistributedSampler(eval_dataset, world_size, rank, shuffle=False)
+            eval_sampler = EvalDistributedSampler(eval_dataset, world_size, rank)
         else:
             eval_sampler = None
         eval_dataloader = DataLoader(
