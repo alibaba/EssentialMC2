@@ -1,4 +1,5 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
+import warnings
 
 from .local_fs import LocalFs
 from .registry import FILE_SYSTEMS
@@ -41,7 +42,10 @@ class FS(object):
 
         for fs_cfg in fs_cfg_list:
             fs_client = FILE_SYSTEMS.build(fs_cfg)
-            FS._inited_clients[fs_client.get_prefix()] = fs_client
+            _prefix = fs_client.get_prefix()
+            if _prefix in FS._inited_clients:
+                warnings.warn(f"File client {_prefix} has already been set, will be replaced by newer config.")
+            FS._inited_clients[_prefix] = fs_client
 
         FS._inited = True
 

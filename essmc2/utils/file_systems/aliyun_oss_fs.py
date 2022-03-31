@@ -6,7 +6,7 @@ import os
 import os.path as osp
 import random
 import tempfile
-from typing import Optional
+import warnings
 
 import oss2
 
@@ -30,38 +30,38 @@ class OssLoggingHandler(logging.StreamHandler):
 class AliyunOssFs(BaseFs):
     def __init__(self, endpoint, bucket, ak, sk, retry_times=10):
         super(AliyunOssFs, self).__init__()
-        self.endpoint = endpoint
-        self.bucket_name = bucket
-        self.ak = ak
-        self.sk = sk
-        self.bucket: Optional[oss2.Bucket] = None
-        self.retry_times = retry_times
-        self.prefix = f"oss://{self.bucket_name}/"
+        self.prefix = f"oss://{bucket}/"
+        self._bucket: oss2.Bucket = oss2.Bucket(oss2.Auth(ak, sk), endpoint, bucket)
+        try:
+            self._bucket.list_objects(max_keys=1)
+        except Exception as e:
+            warnings.warn(f"Cannot list objects in {self.prefix}, please check auth information. \n{e}")
+        self._retry_times = retry_times
 
-    def _init_bucket(self):
-        if self.bucket is None:
-            self.bucket = oss2.Bucket(oss2.Auth(self.ak, self.sk), self.endpoint, self.bucket_name)
+    def get_object_to_local_file(self, path, local_path=None) -> str:
+        key = osp.relpath(path, self.prefix)
+        save_as_temp = False
+        if local_path is None:
+            local_path, save_as_temp = self.map_local_path(path)
 
-    def get_object_to_local_file(self, path) -> str:
-        self._init_bucket()
 
-        key = path[len(self.prefix):]
-        basename = osp.basename(path)
-        randname = '{0:%Y%m%d%H%M%S%f}'.format(datetime.datetime.now()) + ''.join(
-            [str(random.randint(1, 10)) for i in range(5)])
-        tmp_file = osp.join(tempfile.gettempdir(), randname + '_' + basename)
+        # basename = osp.basename(path)
+        # randname = '{0:%Y%m%d%H%M%S%f}'.format(datetime.datetime.now()) + ''.join(
+        #     [str(random.randint(1, 10)) for i in range(5)])
+        # tmp_file = osp.join(tempfile.gettempdir(), randname + '_' + basename)
         retry = 0
-        while retry < self.retry_times:
+        while retry < self._retry_times:
             try:
-                self.bucket.get_object_to_file(key, tmp_file)
-                if osp.exists(tmp_file):
+                self._bucket.get_object_to_file(key, local_path)
+                if osp.exists(local_path):
                     break
             except oss2.exceptions.NoSuchKey as e:
                 raise e
             except Exception as e:
                 retry += 1
-        self.to_removes.add(tmp_file)
-        return tmp_file
+        if save_as_temp:
+            self.to_removes.add(local_path)
+        return local_path
 
     def get_object_to_memory(self, path) -> bytes:
         tmp_file = self.get_object_to_local_file(path)
@@ -80,14 +80,12 @@ class AliyunOssFs(BaseFs):
             pass
 
     def put_object_from_local_file(self, local_path, target_path):
-        self._init_bucket()
-
         key = target_path[len(self.prefix):]
         retry = 0
-        while retry < self.retry_times:
+        while retry < self._retry_times:
             try:
-                self.bucket.put_object_from_file(key, local_path)
-                if self.bucket.object_exists(key):
+                self._bucket.put_object_from_file(key, local_path)
+                if self._bucket.object_exists(key):
                     break
             except Exception:
                 retry += 1
@@ -99,19 +97,15 @@ class AliyunOssFs(BaseFs):
         return True
 
     def get_logging_handler(self, logging_path):
-        self._init_bucket()
         oss_key = osp.relpath(logging_path, self.prefix)
-        return OssLoggingHandler(self.bucket, oss_key)
+        return OssLoggingHandler(self._bucket, oss_key)
 
     def make_link(self, link_path, target_path):
-        self._init_bucket()
         link_key = osp.relpath(link_path, self.prefix)
         target_key = osp.relpath(target_path, self.prefix)
-        self.bucket.put_symlink(target_key, link_key)
+        self._bucket.put_symlink(target_key, link_key)
 
     def put_dir_from_local_dir(self, local_dir, target_dir):
-        self._init_bucket()
-
         for folder, sub_folders, files in os.walk(local_dir):
             for file in files:
                 file_abs_path = osp.join(folder, file)
@@ -120,12 +114,8 @@ class AliyunOssFs(BaseFs):
                 self.put_object_from_local_file(file_abs_path, target_path)
 
     def exists(self, target_path):
-        self._init_bucket()
-
-        return self.bucket.object_exists(osp.relpath(target_path, self.prefix))
+        return self._bucket.object_exists(osp.relpath(target_path, self.prefix))
 
     def remove(self, target_path):
-        self._init_bucket()
-
         if self.exists(target_path):
-            self.bucket.delete_object(osp.relpath(target_path, self.prefix))
+            self._bucket.delete_object(osp.relpath(target_path, self.prefix))

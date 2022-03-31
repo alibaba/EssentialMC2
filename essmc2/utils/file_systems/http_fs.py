@@ -24,7 +24,7 @@ class HttpFs(BaseFs):
         super(HttpFs, self).__init__()
         self.retry_times = retry_times
 
-    def get_object_to_local_file(self, path) -> str:
+    def get_object_to_local_file(self, path, local_path=None) -> str:
         basename = _get_http_url_basename(path)
         randname = '{0:%Y%m%d%H%M%S%f}'.format(datetime.datetime.now()) + ''.join(
             [str(random.randint(1, 10)) for i in range(5)])

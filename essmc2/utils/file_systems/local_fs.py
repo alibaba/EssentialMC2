@@ -14,7 +14,7 @@ class LocalFs(BaseFs):
     def convert_to_local_path(self, target_path):
         return target_path
 
-    def get_object_to_local_file(self, path) -> str:
+    def get_object_to_local_file(self, path, local_path=None) -> str:
         return path
 
     def get_object_to_memory(self, path) -> bytes:

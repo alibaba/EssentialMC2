@@ -11,11 +11,17 @@ class BaseFs(object, metaclass=ABCMeta):
         self.to_removes = set()
 
     @abstractmethod
-    def get_object_to_local_file(self, path) -> str:
+    def get_object_to_local_file(self, path, local_path=None) -> str:
         """ Transfer different file system object to local file.
+        If local_path is not None,
+            if path can be searched in local_mapper, download it as a persistent file
+            else, download it as a temporary file
+        else
+            download it as a persistent file
 
         Args:
             path (str): path of object in different file systems
+            local_path (Optional[str]): If not None, will write path to local_path.
 
         Returns:
             Local file path of the object.
@@ -82,7 +88,8 @@ class BaseFs(object, metaclass=ABCMeta):
         self.local_mapper[target_dir] = local_dir
 
     def convert_to_local_path(self, target_path):
-        """ According to self.local_mapper, map target_path to local_path
+        """ Deprecated
+        According to self.local_mapper, map target_path to local_path
 
         Args:
             target_path (str): Target path in non-local file system.
@@ -95,6 +102,21 @@ class BaseFs(object, metaclass=ABCMeta):
                 return osp.join(local_dir, osp.relpath(target_path, target_dir))
         else:
             return osp.join(tempfile.gettempdir(), osp.basename(target_path))
+
+    def map_local_path(self, target_path):
+        """ According to self.local_mapper, map target_path to local_path
+
+        Args:
+            target_path (str): Target full path, such as http://xxx, oss://xxx.
+
+        Returns:
+            A Tuple, file path in local file system, a remove flag
+        """
+        for target_dir, local_dir in self.local_mapper.items():
+            if target_path.startswith(target_dir):
+                return osp.join(local_dir, osp.relpath(target_path, target_dir)), False
+        else:
+            return osp.join(tempfile.gettempdir(), osp.basename(target_path)), True
 
     @abstractmethod
     def get_logging_handler(self, logging_path):
