@@ -2,21 +2,21 @@
 
 from collections import OrderedDict
 
+import numpy as np
 import torch
 
-from .random import set_random_seed
 from .file_systems import FS
 
 
 def worker_init_fn(worker_id, seed=None, worker_device=None, file_systems=None):
     """ Init dataloader worker.
-    0. set random seed;
+    0. set random seed for numpy module which will not be set by pytorch automatically;
     1. set data worker cuda device;
     2. set file systems in worker context;
 
     Args:
         worker_id (int): Dataloader worker id.
-        seed (Optional[int[): Random seed to this worker.
+        seed (Optional[int]): Indicates if a random is given by user.
         worker_device (Optional[str]): Dataloader worker default cuda device.
         file_systems (Optional[Union[dict, List[dict]]]: File system config.
 
@@ -24,7 +24,11 @@ def worker_init_fn(worker_id, seed=None, worker_device=None, file_systems=None):
 
     """
     if seed is not None:
-        set_random_seed(seed)
+        # torch.manual_seed/random.seed
+        # torch.cuda.manual_seed/torch.cuda.manual_seed_all
+        # and all other env variables
+        # are automatically set in either fork or spawn multiprocessing mode
+        np.random.seed(torch.initial_seed() % 2 ** 32)
     if worker_device is not None:
         torch.cuda.set_device(worker_device)
     FS.init_fs_client(file_systems)
