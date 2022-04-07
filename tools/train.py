@@ -32,9 +32,7 @@ def parse_args():
     parser.add_argument("--work_dir", default="./work_dir", type=str, help="""
     directory to save outputs, default is ./work_dir
     """)
-    parser.add_argument("--seed", default=123, type=int, help="""
-    random seed, default is 123
-    """)
+    parser.add_argument("--seed", type=int, help="random seed")
     parser.add_argument("--resume_from", type=str, help="""
     path to checkpoint for resuming training, default is None
     """)
@@ -200,7 +198,7 @@ def main():
     cfg.solver["work_dir"] = work_dir
     # # Seed
     if cfg.get("seed") is None:
-        cfg.seed = 0
+        cfg.seed = None
     if args.seed is not None:
         cfg.seed = args.seed
     # # Model
