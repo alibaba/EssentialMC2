@@ -45,7 +45,8 @@ class TrainValSolver(EvaluationSolver):
             self._total_iter[mode_name] = total_iter
         self.model.load_state_dict(checkpoint["state_dict"])
         self.optimizer.load_state_dict(checkpoint["checkpoint"])
-        self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
+        if self.lr_scheduler is not None:
+            self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
         self._epoch += 1  # Move to next epoch
 
     def save_checkpoint(self) -> dict:
@@ -54,6 +55,7 @@ class TrainValSolver(EvaluationSolver):
             "total_iters": self._total_iter,
             "state_dict": self.model.state_dict(),
             "checkpoint": self.optimizer.state_dict(),
-            "lr_scheduler": self.lr_scheduler.state_dict()
         }
+        if self.lr_scheduler is not None:
+            checkpoint["lr_scheduler"] = self.lr_scheduler.state_dict()
         return checkpoint
