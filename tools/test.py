@@ -107,6 +107,7 @@ def get_data(cfg, logger):
 
 
 def main():
+    torch.multiprocessing.set_start_method('spawn')
     args = parse_args()
 
     # Load extension modules
@@ -179,7 +180,6 @@ def main():
         set_random_seed(random_seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    torch.multiprocessing.set_start_method('spawn')
 
     # Load Model
     logger.info("Building model...")
