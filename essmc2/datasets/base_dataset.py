@@ -4,7 +4,6 @@ from abc import ABCMeta, abstractmethod
 
 from torch.utils.data import Dataset
 
-from essmc2.utils.file_systems import FS
 from ..transforms.registry import build_pipeline, TRANSFORMS
 
 
