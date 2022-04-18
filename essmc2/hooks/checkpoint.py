@@ -56,13 +56,14 @@ class CheckpointHook(Hook):
     def before_solve(self, solver):
         if solver.resume_from is None:
             return
-        with FS.get_fs_client(solver.resume_from) as client:
-            if not client.exists(solver.resume_from):
-                solver.logger.error(f"File not exists {solver.resume_from}")
-                return
+        if not FS.exists(solver.resume_from):
+            solver.logger.error(f"File not exists {solver.resume_from}")
+            return
+
+        with FS.get_from(solver.resume_from) as local_file:
             solver.logger.info(f"Loading checkpoint from {solver.resume_from}")
-            local_file = client.get_object_to_local_file(solver.resume_from)
             checkpoint = torch.load(local_file)
+
         solver.load_checkpoint(checkpoint)
         if self.save_best and "_CheckpointHook_best" in checkpoint:
             self._last_best = checkpoint["_CheckpointHook_best"]

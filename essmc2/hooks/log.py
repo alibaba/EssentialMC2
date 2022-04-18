@@ -14,7 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from .hook import Hook
 from .registry import HOOKS
-from ..utils.file_systems import FS, LocalFs
+from ..utils.file_systems import FS
 from ..utils.logger import LogAgg
 
 _DEFAULT_LOG_PRIORITY = 100
@@ -149,15 +149,10 @@ class TensorboardLogHook(Hook):
 
         if self.log_dir is None:
             self.log_dir = osp.join(solver.work_dir, "tensorboard")
-        tb_client = FS.get_fs_client(self.log_dir)
 
-        if type(tb_client) is LocalFs:
-            self.writer = SummaryWriter(self.log_dir)
-        else:
-            local_tb_dir = tb_client.convert_to_local_path(self.log_dir)
-            os.makedirs(local_tb_dir, exist_ok=True)
-            self._local_log_dir = local_tb_dir
-            self.writer = SummaryWriter(self._local_log_dir)
+        self._local_log_dir, _ = FS.map_to_local(self.log_dir)
+        os.makedirs(self._local_log_dir, exist_ok=True)
+        self.writer = SummaryWriter(self._local_log_dir)
         solver.logger.info(f"Tensorboard: save to {self.log_dir}")
 
     def after_iter(self, solver):
@@ -198,9 +193,7 @@ class TensorboardLogHook(Hook):
 
         self.writer.flush()
         # Put to remote file systems every epoch
-        tb_client = FS.get_fs_client(self.log_dir)
-        if type(tb_client) is not LocalFs and self._local_log_dir is not None:
-            tb_client.put_dir_from_local_dir(self._local_log_dir, self.log_dir)
+        FS.put_dir_from_local_dir(self._local_log_dir, self.log_dir)
 
     def after_solve(self, solver):
         if self.writer is None:
@@ -208,6 +201,4 @@ class TensorboardLogHook(Hook):
         if self.writer:
             self.writer.close()
 
-        tb_client = FS.get_fs_client(self.log_dir)
-        if type(tb_client) is not LocalFs and self._local_log_dir is not None:
-            tb_client.put_dir_from_local_dir(self._local_log_dir, self.log_dir)
+        FS.put_dir_from_local_dir(self._local_log_dir, self.log_dir)

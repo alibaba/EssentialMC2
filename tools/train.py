@@ -228,14 +228,11 @@ def main():
     rank, world_size = get_dist_info()
 
     # Prepare work directory
-    work_fs_client = FS.get_fs_client(work_dir)
-    if type(work_fs_client) is LocalFs:
-        if not osp.exists(work_dir) and rank == 0:
-            os.makedirs(work_dir, exist_ok=True)
-    else:
-        local_work_dir = osp.join("./", osp.basename(args.work_dir), config_name)
+    if rank == 0:
+        local_work_dir = work_dir if FS.is_local_client(work_dir) \
+            else osp.join("./", osp.basename(args.work_dir), config_name)
         os.makedirs(local_work_dir, exist_ok=True)
-        work_fs_client.add_target_local_map(work_dir, local_work_dir)
+        FS.add_target_local_map(work_dir, local_work_dir)
 
     # Configure logger
     run_id = int(time.time())
@@ -271,9 +268,8 @@ def main():
     # Save config
     if rank == 0:
         config_path = osp.join(work_dir, "final_" + osp.basename(args.config))
-        local_config_path = work_fs_client.convert_to_local_path(config_path)
-        cfg.dump(local_config_path)
-        work_fs_client.put_object_from_local_file(local_config_path, config_path)
+        with FS.put_to(config_path) as local_config_path:
+            cfg.dump(local_config_path)
 
     # Begin solve
     solver.solve(data)

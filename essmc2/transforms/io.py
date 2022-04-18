@@ -35,8 +35,7 @@ class LoadImageFromFile(object):
         else:
             img_path = item['meta']['img_path']
 
-        with FS.get_fs_client(img_path) as client:
-            img_path = client.get_object_to_local_file(img_path)
+        with FS.get_from(img_path) as img_path:
             if self.backend == "pillow":
                 image = Image.open(img_path).convert(self.rgb_order)
             elif self.backend == "cv2":
@@ -64,8 +63,8 @@ class LoadPILImageFromFile(object):
             img_path = os.path.join(item['meta']['prefix'], item['meta']['img_path'])
         else:
             img_path = item['meta']['img_path']
-        with FS.get_fs_client(img_path) as client:
-            img_path = client.get_object_to_local_file(img_path)
+
+        with FS.get_from(img_path) as img_path:
             image = Image.open(img_path).convert(self.rgb_order)
             item['img'] = image
             item['meta']['rgb_order'] = self.rgb_order
@@ -83,8 +82,8 @@ class LoadCvImageFromFile(object):
             img_path = os.path.join(item['meta']['prefix'], item['meta']['img_path'])
         else:
             img_path = item['meta']['img_path']
-        with FS.get_fs_client(img_path) as client:
-            img_path = client.get_object_to_local_file(img_path)
+
+        with FS.get_from(img_path) as img_path:
             image = cv2.imread(img_path, cv2.IMREAD_COLOR)
             if self.rgb_order == 'RGB':
                 cv2.cvtColor(image, cv2.COLOR_BGR2RGB, image)

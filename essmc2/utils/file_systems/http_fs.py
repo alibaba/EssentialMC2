@@ -1,80 +1,76 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-import datetime
 import os
 import os.path as osp
-import random
-import tempfile
 import urllib.parse as parse
 import urllib.request
+from typing import Optional
 
 from .base_fs import BaseFs
 from .registry import FILE_SYSTEMS
-
-
-def _get_http_url_basename(url):
-    url = parse.unquote(url)
-    url = url.split("?")[0]
-    return osp.basename(url)
 
 
 @FILE_SYSTEMS.register_class()
 class HttpFs(BaseFs):
     def __init__(self, retry_times=10):
         super(HttpFs, self).__init__()
-        self.retry_times = retry_times
+        self._retry_times = retry_times
 
-    def get_object_to_local_file(self, path, local_path=None) -> str:
-        basename = _get_http_url_basename(path)
-        randname = '{0:%Y%m%d%H%M%S%f}'.format(datetime.datetime.now()) + ''.join(
-            [str(random.randint(1, 10)) for i in range(5)])
-        tmp_file = osp.join(tempfile.gettempdir(), randname + '_' + basename)
-        retry = 0
-        while retry < self.retry_times:
-            try:
-                urllib.request.urlretrieve(path, tmp_file)
-                if osp.exists(tmp_file):
-                    break
-            except Exception:
-                retry += 1
-        self.to_removes.add(tmp_file)
-        return tmp_file
-
-    def get_object_to_memory(self, path) -> bytes:
-        tmp_file = self.get_object_to_local_file(path)
-        with open(tmp_file, "rb") as f:
-            content = f.read()
-        self.remove_local_file(tmp_file)
-        self.to_removes.remove(tmp_file)
-        return content
-
-    def remove_local_file(self, local_path):
-        try:
-            os.remove(local_path)
-            if local_path in self.to_removes:
-                self.to_removes.remove(local_path)
-        except:
-            pass
-
-    def put_object_from_local_file(self, local_path, target_path):
-        raise NotImplemented
-
-    def get_prefix(self):
+    def get_prefix(self) -> str:
         return "http"
 
-    def support_write(self):
+    def support_write(self) -> bool:
         return False
 
-    def get_logging_handler(self, logging_path):
+    def support_link(self) -> bool:
+        return False
+
+    def basename(self, target_path) -> str:
+        url = parse.unquote(target_path)
+        url = url.split("?")[0]
+        return osp.basename(url)
+
+    def get_object_to_local_file(self, target_path, local_path=None) -> Optional[str]:
+        if local_path is None:
+            local_path, is_tmp = self.map_to_local(target_path)
+        else:
+            is_tmp = False
+
+        os.makedirs(osp.dirname(local_path), exist_ok=True)
+
+        retry = 0
+        while retry < self._retry_times:
+            try:
+                target_url = urllib.parse.quote(target_path, safe=":/?#[]@!$&'()*+,;=%")
+                urllib.request.urlretrieve(target_url, local_path)
+                if osp.exists(local_path):
+                    break
+            except:
+                retry += 1
+
+        if retry >= self._retry_times:
+            return None
+
+        if is_tmp:
+            self.add_temp_file(local_path)
+        return local_path
+
+    def put_object_from_local_file(self, local_path, target_path) -> bool:
         raise NotImplemented
 
-    def make_link(self, link_path, target_path):
+    def make_link(self, target_link_path, target_path) -> bool:
         raise NotImplemented
 
-    def put_dir_from_local_dir(self, local_dir, target_dir):
+    def remove(self, target_path) -> bool:
         raise NotImplemented
 
-    def exists(self, target_path):
+    def get_logging_handler(self, target_logging_path):
+        raise NotImplemented
+
+    def put_dir_from_local_dir(self, local_dir, target_dir) -> bool:
+        raise NotImplemented
+
+    def exists(self, target_path) -> bool:
         req = urllib.request.Request(target_path)
         req.get_method = lambda: 'HEAD'
 
@@ -84,7 +80,9 @@ class HttpFs(BaseFs):
         except Exception as e:
             return False
 
-    def remove(self, target_path):
-        raise NotImplemented
+    def isfile(self, target_path) -> bool:
+        # Well for a http url, it should only be a file.
+        return True
 
-
+    def isdir(self, target_path) -> bool:
+        return False

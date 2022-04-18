@@ -156,10 +156,8 @@ class EvaluationSolver(BaseSolver):
             if self.save_eval_data and rank == 0:
                 # minus 1, means index
                 save_path = osp.join(self.work_dir, "eval_{:05d}.pth".format(self.epoch + self.num_folds))
-                with FS.get_fs_client(save_path) as client:
-                    local_file = client.convert_to_local_path(save_path)
+                with FS.put_to(save_path) as local_file:
                     torch.save(concat_collect_data, local_file)
-                    client.put_object_from_local_file(local_file, save_path)
 
     def run_epoch(self, data_loaders):
         self.max_epochs = 1

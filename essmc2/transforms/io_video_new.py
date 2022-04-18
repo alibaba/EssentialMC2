@@ -55,8 +55,7 @@ class LoadVideoFromFile(object):
         meta = item['meta']
         video_path = meta['video_path'] if 'prefix' not in meta else osp.join(meta['prefix'], meta['video_path'])
 
-        with FS.get_fs_client(video_path) as client:
-            local_path = client.get_object_to_local_file(video_path)
+        with FS.get_from(video_path) as local_path:
             vr = VideoReaderWrapper(local_path, decoder=self.decoder)
 
             params = dict()

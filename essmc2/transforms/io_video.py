@@ -133,8 +133,7 @@ class DecodeVideoToTensor(object):
         video_path = meta["video_path"] \
             if "prefix" not in meta else osp.join(meta["prefix"], meta["video_path"])
 
-        with FS.get_fs_client(video_path) as client:
-            local_path = client.get_object_to_local_file(video_path)
+        with FS.get_from(video_path) as local_path:
             vr = VideoReader(local_path)
             # default is test mode
             clip_id = meta.get("clip_id") or 0
