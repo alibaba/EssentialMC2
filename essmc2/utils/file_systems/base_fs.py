@@ -132,6 +132,19 @@ class BaseFs(object, metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def make_dir(self, target_dir) -> bool:
+        """ Make a directory.
+        If target_dir is already exists, return True.
+
+        Args:
+            target_dir (str):
+
+        Returns:
+            True if target_dir exists or created.
+        """
+        pass
+
+    @abstractmethod
     def remove(self, target_path) -> bool:
         """ Remove target file.
 

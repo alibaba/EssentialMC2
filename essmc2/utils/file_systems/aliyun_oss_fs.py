@@ -127,6 +127,10 @@ class AliyunOssFs(BaseFs):
             return False
         return True
 
+    def make_dir(self, target_dir) -> bool:
+        # OSS treat file path as a key, it will create directory automatically when putting a file.
+        return True
+
     def remove(self, target_path) -> bool:
         key = osp.relpath(target_path, self._prefix)
         try:

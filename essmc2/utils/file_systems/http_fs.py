@@ -61,6 +61,9 @@ class HttpFs(BaseFs):
     def make_link(self, target_link_path, target_path) -> bool:
         raise NotImplemented
 
+    def make_dir(self, target_dir) -> bool:
+        raise NotImplemented
+
     def remove(self, target_path) -> bool:
         raise NotImplemented
 
