@@ -52,6 +52,19 @@ class LocalFs(BaseFs):
                 return False
         return True
 
+    def make_dir(self, target_dir) -> bool:
+        if osp.exists(target_dir):
+            if osp.isfile(target_dir):
+                print(f"{target_dir} already exists as a file!")
+                return False
+            return True
+        try:
+            os.makedirs(target_dir)
+        except Exception as e:
+            print(e)
+            return False
+        return True
+
     def make_link(self, target_link_path, target_path) -> bool:
         try:
             if osp.lexists(target_link_path):

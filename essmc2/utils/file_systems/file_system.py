@@ -103,6 +103,19 @@ class FileSystem(object):
         with self.get_fs_client(target_dir, safe=False) as client:
             client.add_target_local_map(target_dir, local_dir)
 
+    def make_dir(self, target_dir):
+        """ Make a directory.
+                If target_dir is already exists, return True.
+
+                Args:
+                    target_dir (str):
+
+                Returns:
+                    True if target_dir exists or created.
+                """
+        with self.get_fs_client(target_dir) as client:
+            return client.make_dir(target_dir)
+
     def exists(self, target_path):
         """ Check if target_path exists.
 
