@@ -138,8 +138,8 @@ class FileSystem(object):
             A local path and a flag indicates if the local path is a temporary file.
         """
         with self.get_fs_client(target_path) as client:
-            local_path, _ = client.map_to_local(target_path)
-            return local_path
+            local_path, is_tmp = client.map_to_local(target_path)
+            return local_path, is_tmp
 
     def put_dir_from_local_dir(self, local_dir, target_dir):
         """ Upload all contents in local_dir to target_dir, keep the file tree.
