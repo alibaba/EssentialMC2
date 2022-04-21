@@ -29,6 +29,7 @@ def parse_args():
     parser.add_argument("--work_dir", default="./work_dir", type=str, help="""
     directory to save outputs, default is ./work_dir
     """)
+    parser.add_argument("--seed", type=int, help="random seed")
     parser.add_argument("--data_root_dir", type=str, help="""
     root directory to load image, video or text, default is None
     """)
@@ -138,6 +139,11 @@ def main():
     config_name = osp.splitext(osp.basename(args.config))[0]
     work_dir = osp.join(work_dir, config_name)
     cfg.solver["work_dir"] = work_dir
+    # # Seed
+    if cfg.get("seed") is None:
+        cfg.seed = None
+    if args.seed is not None:
+        cfg.seed = args.seed
     # # Model
     if args.pretrain is not None:
         cfg.model.pretrain = args.pretrain
