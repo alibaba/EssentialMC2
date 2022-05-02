@@ -103,12 +103,10 @@ class CheckpointHook(Hook):
             # minus 1, means index
             save_path = osp.join(solver.work_dir, "epoch-{:05d}.pth".format(solver.epoch + solver.num_folds))
 
-            with FS.get_fs_client(save_path) as client:
-                local_file = client.convert_to_local_path(save_path)
+            with FS.put_to(save_path) as local_file:
                 with open(local_file, "wb") as f:
                     torch.save(checkpoint, f)
-                client.put_object_from_local_file(local_file, save_path)
-
-                if cur_is_best:
-                    best_path = osp.join(solver.work_dir, f"best.pth")
+            if cur_is_best:
+                best_path = osp.join(solver.work_dir, f"best.pth")
+                with FS.get_fs_client(best_path) as client:
                     client.make_link(best_path, save_path)
