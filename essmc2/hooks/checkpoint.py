@@ -71,7 +71,7 @@ class CheckpointHook(Hook):
     def after_epoch(self, solver):
         if du.is_available() and du.is_initialized() and du.get_rank() != 0:
             return
-        if (solver.epoch + solver.num_epochs) % self.interval == 0:
+        if (solver.epoch + solver.num_folds) % self.interval == 0:
             solver.logger.info(f'Saving checkpoint after {solver.epoch + solver.num_folds} epochs')
             checkpoint = solver.save_checkpoint()
             if checkpoint is None or len(checkpoint) == 0:

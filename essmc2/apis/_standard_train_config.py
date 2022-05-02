@@ -22,7 +22,7 @@ solver = dict(
     do_final_eval=False,
     save_eval_data=False,
     eval_metric_cfg=None,
-    eval_keys=None,
+    extra_keys=None,
     optimizer=dict(type=''),
     lr_scheduler=None,
     resume_from=None,

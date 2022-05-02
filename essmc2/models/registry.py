@@ -18,8 +18,9 @@ def build_model(cfg, registry, **kwargs):
         raise TypeError(f"config must be type dict, got {type(cfg)}")
     if "pretrain" in cfg:
         pretrain_cfg = cfg.pop("pretrain")
-        if not isinstance(pretrain_cfg, (dict, str)):
-            raise TypeError(f"pretrain parameter must be a string or a dict")
+        if pretrain_cfg is not None:
+            if not isinstance(pretrain_cfg, (dict, str)):
+                raise TypeError(f"pretrain parameter must be a string or a dict")
     else:
         pretrain_cfg = None
 

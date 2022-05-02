@@ -18,8 +18,9 @@ class DistSamplerHook(Hook):
     def before_epoch(self, solver):
         for name, data_loader in solver.data_loaders.items():
             if name == "train":
-                solver.logger.info(f"distribute sampler set_epoch to {solver.epoch}")
                 if hasattr(data_loader.sampler, "set_epoch"):
+                    solver.logger.info(f"distribute sampler set_epoch to {solver.epoch}")
                     data_loader.sampler.set_epoch(solver.epoch)
                 elif hasattr(data_loader.batch_sampler.sampler, 'set_epoch'):
+                    solver.logger.info(f"distribute sampler set_epoch to {solver.epoch}")
                     data_loader.batch_sampler.sampler.set_epoch(solver.epoch)
