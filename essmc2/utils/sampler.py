@@ -161,6 +161,78 @@ class MultiFoldDistributedSampler(Sampler):
         self.epoch = epoch
 
 
+class MultiFoldRandomSampler(Sampler):
+    """ Modified from torch.utils.data.sampler.RandomSampler.
+    Add num_folds parameters.
+
+    Args:
+        dataset (Dataset): dataset to sample from
+        num_folds (int): repeats of the dataset,, default = 1.
+        replacement (bool): samples are drawn on-demand with replacement if ``True``, default=``False``
+        num_samples (int): number of samples to draw, default=`len(dataset)`. This argument
+            is supposed to be specified only when `replacement` is ``True``.
+        generator (Generator): Generator used in sampling.
+    """
+
+    def __init__(self, dataset, num_folds=1, replacement: bool = False,
+                 num_samples: Optional[int] = None, generator=None):
+        self.dataset = dataset
+        self.num_folds = num_folds
+        self.replacement = replacement
+        self._num_samples = num_samples
+        self.generator = generator
+
+    @property
+    def num_samples(self) -> int:
+        # dataset size might change at runtime
+        if self._num_samples is None:
+            return len(self.dataset) * self.num_folds
+        return self._num_samples
+
+    def __iter__(self):
+        n = len(self.dataset)
+        if self.generator is None:
+            generator = torch.Generator()
+            generator.manual_seed(int(torch.empty((), dtype=torch.int64).random_().item()))
+        else:
+            generator = self.generator
+        if self.replacement:
+            for _ in range(self.num_samples // 32):
+                yield from torch.randint(high=n, size=(32,), dtype=torch.int64,
+                                         generator=generator).tolist()
+            yield from torch.randint(high=n, size=(self.num_samples % 32,), dtype=torch.int64,
+                                     generator=generator).tolist()
+        else:
+            indices = []
+            for _ in range(self.num_folds):
+                indices += torch.randperm(n, generator=self.generator).tolist()
+            yield from indices
+
+    def __len__(self):
+        return self.num_samples
+
+
+class MultiFoldSequentialSampler(Sampler):
+    """Modified from torch.utils.data.sampler.SequentialSampler.
+    Add num_folds parameters.
+
+    Args:
+        dataset (Dataset): dataset to sample from
+    """
+
+    def __init__(self, dataset, num_folds=1):
+        self.dataset = dataset
+        self.num_folds = num_folds
+
+    def __iter__(self):
+        indices = list(range(len(self.dataset)))
+        indices = indices * self.num_folds
+        return iter(indices)
+
+    def __len__(self) -> int:
+        return len(self.dataset) * self.num_folds
+
+
 class EvalDistributedSampler(Sampler):
     """Modified from DistributedSampler.
 
