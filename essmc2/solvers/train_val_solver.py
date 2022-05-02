@@ -35,7 +35,7 @@ class TrainValSolver(EvaluationSolver):
         self.run_train_epoch(data_loaders["train"])
 
         if "eval" in data_loaders and (
-                (self._epoch + 1) % self.eval_interval == 0 or self._epoch == self.max_epochs - 1):
+                (self._epoch + self.num_folds) % self.eval_interval == 0 or self._epoch == self.max_epochs - 1):
             self.logger.info(f"Begin to evaluate at Epoch [{self._epoch}/{self.max_epochs}]...")
             self.run_eval_epoch(data_loaders["eval"])
 

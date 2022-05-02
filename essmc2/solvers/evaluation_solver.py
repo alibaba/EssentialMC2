@@ -87,9 +87,6 @@ class EvaluationSolver(BaseSolver):
 
     @torch.no_grad()
     def run_eval_epoch(self, val_data_loader):
-        if (self.epoch + self.num_folds) % self.eval_interval != 0:
-            return
-
         collect_data = defaultdict(list)
 
         rank, world_size = get_dist_info()
