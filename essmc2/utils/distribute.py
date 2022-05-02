@@ -17,7 +17,7 @@ def init_dist(backend='nccl', launcher="pytorch"):
     dist.init_process_group(backend=backend)
     if launcher == "pytorch":
         rank, _ = get_dist_info()
-        torch.cuda.set_device(rank)
+        torch.cuda.set_device(rank % torch.cuda.device_count())
 
 
 def gather_data(data):

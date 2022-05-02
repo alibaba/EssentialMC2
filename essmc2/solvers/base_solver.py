@@ -207,11 +207,13 @@ class BaseSolver(object, metaclass=ABCMeta):
             if check_dict_of_str_dict(hooks, contains_type=True):
                 hooks = list(hooks.values())
             for hook_cfg in hooks:
+                if hook_cfg is None:
+                    continue
                 self._hooks.append(HOOKS.build(hook_cfg))
         self._hooks.sort(key=lambda a: a.priority)
 
     def get_optim_parameters(self):
-        return self.model.parameters()
+        return [p for p in self.model.parameters() if p.requires_grad]
 
     def _get_optimizer(self, cfg):
         if cfg is None:
