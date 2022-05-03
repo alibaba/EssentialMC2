@@ -175,7 +175,7 @@ def main():
 
     # Load Dataset
     logger.info(f"Building data...")
-    data = get_data(cfg, logger)
+    data = get_data(cfg, logger, eval_only=True)
     logger.info(f"Built data: {list(data.keys())}")
 
     # Load Solver

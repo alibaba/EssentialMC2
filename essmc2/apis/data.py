@@ -14,13 +14,14 @@ from essmc2.utils.logger import get_logger
 from essmc2.utils.sampler import MultiFoldDistributedSampler, EvalDistributedSampler, MultiFoldRandomSampler
 
 
-def get_data(cfg: Config, logger: Optional[logging.Logger] = None):
+def get_data(cfg: Config, logger: Optional[logging.Logger] = None, eval_only: bool = False):
     logger = logger or get_logger()
     device_id = torch.cuda.current_device()
     data = {}
-    if "train" in cfg.data:
-        train_dataloader = _get_train_data(cfg, device_id, logger)
-        data['train'] = train_dataloader
+    if not eval_only:
+        if "train" in cfg.data:
+            train_dataloader = _get_train_data(cfg, device_id, logger)
+            data['train'] = train_dataloader
     if "eval" in cfg.data:
         eval_dataloader = _get_eval_data(cfg, device_id, logger)
         data['eval'] = eval_dataloader
