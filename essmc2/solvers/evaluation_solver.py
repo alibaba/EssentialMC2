@@ -12,6 +12,7 @@ from ..utils.distribute import gather_data
 from ..utils.distribute import get_dist_info
 from ..utils.file_systems import FS
 from ..utils.metrics import METRICS
+from ..utils.sampler import EvalDistributedSampler
 
 
 def _get_value(data: dict, key: str):
@@ -140,7 +141,7 @@ class EvaluationSolver(BaseSolver):
 
             # If distributed and use DistributedSampler
             # Gather all collect data to rank 0
-            if world_size > 0 and type(val_data_loader.sampler) is torch.utils.data.DistributedSampler:
+            if world_size > 0 and type(val_data_loader.sampler) is EvalDistributedSampler:
                 concat_collect_data = {key: gather_data(concat_collect_data[key]) for key in self._collect_keys}
 
             # Do final evaluate

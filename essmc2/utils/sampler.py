@@ -266,6 +266,12 @@ class EvalDistributedSampler(Sampler):
         self.perfect_num_samples = math.ceil(len(self.dataset) / self.num_replicas)
         self.perfect_total_size = self.perfect_num_samples * self.num_replicas
 
+        if self.padding:
+            self._len = self.perfect_num_samples
+        else:
+            self._len = min((self.rank + 1) * self.perfect_num_samples, len(self.dataset)) \
+                        - self.rank * self.perfect_num_samples
+
     def __iter__(self):
         indices = list(range(len(self.dataset)))
 
@@ -273,10 +279,13 @@ class EvalDistributedSampler(Sampler):
             padding_size = self.perfect_total_size - len(indices)
             indices += indices[:padding_size]
 
+        # subsample
+        indices = indices[self.rank * self.perfect_num_samples: (self.rank + 1) * self.perfect_num_samples]
+
         return iter(indices)
 
     def __len__(self) -> int:
-        return self.perfect_num_samples
+        return self._len
 
     def set_epoch(self, epoch: int) -> None:
         pass
