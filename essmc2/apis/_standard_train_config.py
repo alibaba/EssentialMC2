@@ -2,10 +2,6 @@ data = dict(
     train=dict(
         samples_per_gpu=2,
         workers_per_gpu=2,
-        data=dict(
-            type='',
-            mode='train',
-        )
     ),
     eval=None,
     pin_memory=False
