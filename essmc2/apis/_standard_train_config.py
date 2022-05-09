@@ -19,7 +19,7 @@ solver = dict(
     save_eval_data=False,
     eval_metric_cfg=None,
     extra_keys=None,
-    optimizer=dict(type=''),
+    optimizer=None,
     lr_scheduler=None,
     resume_from=None,
     work_dir='./work_dir',

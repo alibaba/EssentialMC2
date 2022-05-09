@@ -61,7 +61,8 @@ class LrHook(Hook):
         self.set_by_epoch = set_by_epoch
 
     def before_solve(self, solver):
-        if self.warmup_func is not None:
+        # Not support warmup for multiple lr schedulers
+        if self.warmup_func is not None and not isinstance(solver.lr_scheduler, dict):
             self.warmup_end_lr = _get_lr_from_scheduler(solver.lr_scheduler, self.warmup_epochs)
             for param_group in solver.optimizer.param_groups:
                 param_group["lr"] = self.warmup_start_lr
@@ -72,8 +73,8 @@ class LrHook(Hook):
         return self.warmup_start_lr + alpha * cur_epoch
 
     def after_epoch(self, solver):
-        if solver.lr_scheduler is not None:
-            if self.set_by_epoch:
+        if solver.lr_scheduler is not None and self.set_by_epoch:
+            if not isinstance(solver.lr_scheduler, dict):
                 last_lr = solver.optimizer.param_groups[0]["lr"]
                 for _ in range(solver.num_folds):
                     solver.lr_scheduler.step()
@@ -86,13 +87,29 @@ class LrHook(Hook):
                     solver.logger.info(f"Change learning rate from {last_lr} to {new_lr}")
                 else:
                     solver.logger.info(f"Keep learning rate = {last_lr}")
+            else:
+                for key, sub_lr_scheduler in solver.lr_scheduler.items():
+                    last_lr = solver.optimizer[key].param_groups[0]['lr']
+                    for _ in range(solver.num_folds):
+                        sub_lr_scheduler.step()
+                    new_lr = solver.optimizer[key].param_groups[0]['lr']
+                    if last_lr != new_lr:
+                        solver.logger.info(f"Change {key} learning rate from {last_lr} to {new_lr}")
+                    else:
+                        solver.logger.info(f"Keep {key} learning rate = {last_lr}")
 
     def before_iter(self, solver):
-        if not self.set_by_epoch and solver.is_train_mode and solver.lr_scheduler is not None:
+        if solver.lr_scheduler is not None and not self.set_by_epoch and solver.is_train_mode:
             cur_epoch_float = solver.epoch + solver.num_folds * solver.iter / solver.epoch_max_iter
-            if self.warmup_func is not None and cur_epoch_float < self.warmup_epochs:
-                new_lr = self._get_warmup_lr(cur_epoch_float)
+            if not isinstance(solver.lr_scheduler, dict):
+                if self.warmup_func is not None and cur_epoch_float < self.warmup_epochs:
+                    new_lr = self._get_warmup_lr(cur_epoch_float)
+                else:
+                    new_lr = _get_lr_from_scheduler(solver.lr_scheduler, cur_epoch_float)
+                for param_group in solver.optimizer.param_groups:
+                    param_group["lr"] = new_lr
             else:
-                new_lr = _get_lr_from_scheduler(solver.lr_scheduler, cur_epoch_float)
-            for param_group in solver.optimizer.param_groups:
-                param_group["lr"] = new_lr
+                for key, sub_lr_scheduler in solver.lr_scheduler.items():
+                    new_lr = _get_lr_from_scheduler(sub_lr_scheduler, cur_epoch_float)
+                    for param_group in solver.optimizer[key].param_groups:
+                        param_group["lr"] = new_lr

@@ -44,9 +44,19 @@ class TrainValSolver(EvaluationSolver):
         for mode_name, total_iter in checkpoint["total_iters"].items():
             self._total_iter[mode_name] = total_iter
         self.model.load_state_dict(checkpoint["state_dict"])
-        self.optimizer.load_state_dict(checkpoint["checkpoint"])
+
+        if isinstance(self.optimizer, dict):
+            for key, value in checkpoint['optimizer'].items():
+                self.optimizer[key].load_state_dict(value)
+        else:
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+
         if self.lr_scheduler is not None:
-            self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
+            if isinstance(self.lr_scheduler, dict):
+                for key, value in checkpoint['lr_scheduler'].items():
+                    self.lr_scheduler[key].load_state_dict(value)
+            else:
+                self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
         self._epoch += 1  # Move to next epoch
 
     def save_checkpoint(self) -> dict:
@@ -54,8 +64,22 @@ class TrainValSolver(EvaluationSolver):
             "epoch": self._epoch,
             "total_iters": self._total_iter,
             "state_dict": self.model.state_dict(),
-            "checkpoint": self.optimizer.state_dict(),
         }
+
+        if isinstance(self.optimizer, dict):
+            optimizer_state_dict = {}
+            for key, value in self.optimizer.items():
+                optimizer_state_dict[key] = value.state_dict()
+            checkpoint['optimizer'] = optimizer_state_dict
+        else:
+            checkpoint['optimizer'] = self.optimizer.state_dict()
+
         if self.lr_scheduler is not None:
-            checkpoint["lr_scheduler"] = self.lr_scheduler.state_dict()
+            if isinstance(self.lr_scheduler, dict):
+                lr_scheduler_state_dict = {}
+                for key, value in self.lr_scheduler.items():
+                    lr_scheduler_state_dict[key] = value.state_dict()
+                checkpoint['lr_scheduler'] = lr_scheduler_state_dict
+            else:
+                checkpoint["lr_scheduler"] = self.lr_scheduler.state_dict()
         return checkpoint

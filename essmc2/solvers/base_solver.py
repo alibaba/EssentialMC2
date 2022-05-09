@@ -11,6 +11,7 @@ from essmc2.utils.logger import get_logger
 from essmc2.utils.typing import check_dict_of_str_dict
 from ..lr_schedulers import LR_SCHEDULERS
 from ..optimizers import OPTIMIZERS
+from typing import Union, Dict
 
 
 class BaseSolver(object, metaclass=ABCMeta):
@@ -41,8 +42,8 @@ class BaseSolver(object, metaclass=ABCMeta):
                  num_folds=1,
                  hooks=None):
         self.model: torch.nn.Module = model
-        self.optimizer: torch.optim.optimizer.Optimizer = self._get_optimizer(optimizer)
-        self.lr_scheduler = self._get_lr_scheduler(lr_scheduler)
+        self.optimizer: Union[torch.optim.optimizer.Optimizer, Dict[str, torch.optim.optimizer.Optimizer]] = self.build_optimizer(optimizer)
+        self.lr_scheduler = self.build_lr_scheduler(lr_scheduler)
         self.resume_from = resume_from
         self.work_dir = work_dir
         self.logger = logger or get_logger()
@@ -212,15 +213,12 @@ class BaseSolver(object, metaclass=ABCMeta):
                 self._hooks.append(HOOKS.build(hook_cfg))
         self._hooks.sort(key=lambda a: a.priority)
 
-    def get_optim_parameters(self):
-        return [p for p in self.model.parameters() if p.requires_grad]
-
-    def _get_optimizer(self, cfg):
+    def build_optimizer(self, cfg):
         if cfg is None:
             return None
-        return OPTIMIZERS.build(self.get_optim_parameters(), cfg)
+        return OPTIMIZERS.build(self.model, cfg)
 
-    def _get_lr_scheduler(self, cfg):
+    def build_lr_scheduler(self, cfg):
         if cfg is None:
             return None
         if self.optimizer is None:
