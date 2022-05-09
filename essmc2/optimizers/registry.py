@@ -24,9 +24,9 @@ def build_optimizer(model_or_params, cfg, **kwargs):
         assert req_type in SUPPORT_TYPES, f"req_type should in {SUPPORT_TYPES}, got {req_type}"
         cls = getattr(optim, req_type)
         if isinstance(sub_module_or_params, torch.nn.Module):
-            return cls([t for t in sub_module_or_params.parameters() if t.requires_grad], **cfg)
+            return cls([t for t in sub_module_or_params.parameters() if t.requires_grad], **sub_cfg)
         else:
-            return cls(sub_module_or_params, **cfg)
+            return cls(sub_module_or_params, **sub_cfg)
 
     if isinstance(model_or_params, (torch.nn.parallel.DistributedDataParallel, torch.nn.parallel.DataParallel)):
         model_or_params = model_or_params.module
