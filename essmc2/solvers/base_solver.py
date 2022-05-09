@@ -113,8 +113,13 @@ class BaseSolver(object, metaclass=ABCMeta):
     def collect_log_vars(self) -> OrderedDict:
         ret = OrderedDict()
         if self.is_train_mode and self.optimizer is not None:
-            lr = self.optimizer.param_groups[0]["lr"]
-            ret["lr"] = lr
+            if not isinstance(self.optimizer, dict):
+                lr = self.optimizer.param_groups[0]["lr"]
+                ret["lr"] = lr
+            else:
+                for key, value in self.optimizer.items():
+                    lr = self.optimizer[key].param_groups[0]['lr']
+                    ret[f'{key}_lr'] = lr
         return ret
 
     @abstractmethod
