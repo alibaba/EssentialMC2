@@ -46,7 +46,7 @@ def build_optimizer(model_or_params, cfg, **kwargs):
                 if module_name not in model_or_params:
                     raise ValueError(f"Cannot find sub module {module_name} in model parameters.")
                 ret[module_name] = _build_optimizer(model_or_params[module_name], optim_cfg)
-
+        return ret
     elif 'type' in cfg:
         return _build_optimizer(model_or_params, cfg)
     else:
