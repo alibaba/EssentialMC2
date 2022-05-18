@@ -57,7 +57,7 @@ class TrainValSolver(EvaluationSolver):
                     self.lr_scheduler[key].load_state_dict(value)
             else:
                 self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
-        self._epoch += 1  # Move to next epoch
+        self._epoch += self.num_folds  # Move to next epoch
 
     def save_checkpoint(self) -> dict:
         checkpoint = {

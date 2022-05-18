@@ -1,5 +1,5 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
-
+import math
 import numbers
 import os
 import os.path as osp
@@ -21,6 +21,10 @@ _DEFAULT_LOG_PRIORITY = 100
 
 
 def _format_float(x):
+    if math.isinf(x):
+        return 'inf'
+    if math.isnan(x):
+        return 'nan'
     if abs(x) - int(abs(x)) < 0.01:
         return "{:.6f}".format(x)
     else:

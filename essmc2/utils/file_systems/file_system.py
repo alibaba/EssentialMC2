@@ -1,6 +1,7 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 import warnings
 from contextlib import contextmanager
+import os.path as osp
 
 from .base_fs import BaseFs
 from .local_fs import LocalFs
@@ -181,6 +182,8 @@ class FileSystem(object):
             if is_tmp:
                 client.add_temp_file(local_path)
             yield local_path
+            if not osp.exists(local_path):
+                raise WriteException(f"{local_path} is not exists.")
             status = client.put_object_from_local_file(local_path, target_path)
             if not status:
                 raise WriteException(f"Failed to upload from {local_path} to {target_path}")
