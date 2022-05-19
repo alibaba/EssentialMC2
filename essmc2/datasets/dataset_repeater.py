@@ -14,3 +14,6 @@ class DatasetRepeater(object):
 
     def __getitem__(self, idx):
         return self.dataset[idx % len(self.dataset)]
+
+    def __repr__(self):
+        return f"DatasetRepeater[{self.dataset}] * {self.num_repeats}"
