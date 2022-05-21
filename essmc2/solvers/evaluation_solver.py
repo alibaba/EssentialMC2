@@ -105,6 +105,7 @@ class EvaluationSolver(BaseSolver):
 
             if self.do_final_eval or self.save_eval_data:
                 # Collect data
+                data_gpu = self._iter_inputs[self._mode].copy()
                 if isinstance(result, torch.Tensor):
                     data_gpu["result"] = result
                 elif isinstance(result, dict):

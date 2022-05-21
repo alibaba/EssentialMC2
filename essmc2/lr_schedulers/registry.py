@@ -16,7 +16,7 @@ def build_lr_scheduler(optimizer, cfg, **kwargs):
         raise TypeError(f"config must be type dict, got {type(cfg)}")
 
     def _build_lr_scheduler(sub_optim, sub_cfg):
-        req_type = cfg.pop("type")
+        req_type = sub_cfg.pop("type")
         assert req_type in SUPPORT_TYPES, f"req_type should in {SUPPORT_TYPES}, got {req_type}"
         cls = getattr(lr_mod, req_type)
         return cls(sub_optim, **sub_cfg)
