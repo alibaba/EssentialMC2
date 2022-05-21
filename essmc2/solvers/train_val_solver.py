@@ -25,8 +25,8 @@ class TrainValSolver(EvaluationSolver):
         self._epoch_max_iter[self._mode] = len(train_data_loader)
         for data in train_data_loader:
             self.before_iter()
-            data_gpu = transfer_data_to_cuda(data)
-            self._iter_outputs[self._mode] = self._reduce_scalar(self.model(**data_gpu))
+            self._iter_inputs[self._mode] = transfer_data_to_cuda(data)
+            self._iter_outputs[self._mode] = self._reduce_scalar(self.model(**self._iter_inputs[self._mode]))
             self.after_iter()
         self.after_all_iter()
 

@@ -98,8 +98,8 @@ class EvaluationSolver(BaseSolver):
         self.before_all_iter()
         for data in val_data_loader:
             self.before_iter()
-            data_gpu = transfer_data_to_cuda(data)
-            result = self.model(**data_gpu)
+            self._iter_inputs[self._mode] = transfer_data_to_cuda(data)
+            result = self.model(**self._iter_inputs[self._mode])
 
             self._iter_outputs[self._mode] = self._reduce_scalar(result)
 

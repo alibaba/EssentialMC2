@@ -56,6 +56,7 @@ class BaseSolver(object, metaclass=ABCMeta):
         self._epoch_max_iter: defaultdict = defaultdict(int)
         self._iter: defaultdict = defaultdict(int)
         self._total_iter: defaultdict = defaultdict(int)
+        self._iter_inputs = defaultdict(dict)
         self._iter_outputs = defaultdict(dict)
         self._agg_iter_outputs = defaultdict(dict)
         self._epoch_outputs = defaultdict(dict)
@@ -107,6 +108,7 @@ class BaseSolver(object, metaclass=ABCMeta):
         [t.after_epoch(self) for t in self._hooks]
         self._epoch += self._num_folds
         self._iter.clear()
+        self._iter_inputs.clear()
         self._iter_outputs.clear()
         self._epoch_outputs.clear()
 
@@ -166,6 +168,10 @@ class BaseSolver(object, metaclass=ABCMeta):
     @property
     def mode(self) -> str:
         return self._mode
+
+    @property
+    def iter_inputs(self) -> dict:
+        return self._iter_inputs[self._mode]
 
     @property
     def iter_outputs(self) -> dict:
