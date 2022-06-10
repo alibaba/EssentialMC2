@@ -1,8 +1,8 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
-from torch.utils.data import ConcatDataset
 
 from ..utils.registry import Registry, build_from_config
+from ..utils.typing import check_dict_of_str_dict
 
 
 def build_dataset(cfg, registry, **kwargs):
@@ -14,14 +14,11 @@ def build_dataset(cfg, registry, **kwargs):
             raise ValueError("Dataset config contains nothing")
         if len(cfg) == 1:
             return build_from_config(cfg[0], registry, **kwargs)
-
-        datasets = []
-        for ele_cfg in cfg:
-            dataset = build_from_config(ele_cfg, registry, **kwargs)
-            datasets.append(dataset)
-
-        return ConcatDataset(datasets)
-
+        from .concat_dataset import ConcatDataset
+        return ConcatDataset(*cfg)
+    elif check_dict_of_str_dict(cfg, contains_type=True):
+        from .concat_dataset import ConcatDataset
+        return ConcatDataset(**cfg)
     else:
         return build_from_config(cfg, registry, **kwargs)
 
