@@ -2,18 +2,17 @@
 
 
 import os
+from fractions import Fraction
 from typing import Callable, Optional
+from typing import Union
 
 import cv2
-import decord
 import numpy as np
 import torch
 import torch.utils.dlpack as dlpack
 
 from .frame_sampler import do_frame_sample
 from ..file_systems import FS
-from typing import Union
-from fractions import Fraction
 
 
 class _Wrapper(object):
@@ -38,6 +37,13 @@ class VideoReaderWrapper(_Wrapper):
         self._video_path = video_path
         self._decoder_type = decoder
         if decoder == "decord":
+            try:
+                import decord
+            except:
+                import warnings
+                warnings.warn(f"You may run `pip install decord==0.6.0` to use {self.__class__.__name__}")
+                exit(-1)
+
             self._vr = decord.VideoReader(self._video_path)
 
     @property
@@ -110,6 +116,7 @@ class EasyVideoReader(object):
          transforms (Optional[Callable]): Do transform operations, default is None.
 
     """
+
     def __init__(self,
                  video_path: str,
                  num_frames: int,

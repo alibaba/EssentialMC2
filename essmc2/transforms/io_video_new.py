@@ -27,6 +27,14 @@ class LoadVideoFromFile(object):
                  sample_type='interval',
                  clip_duration=None,
                  decoder='decord'):
+
+        try:
+            import decord
+        except:
+            import warnings
+            warnings.warn(f"You may run `pip install decord==0.6.0` to use {self.__class__.__name__}")
+            exit(-1)
+
         self.num_frames = num_frames
         self.sample_type = sample_type
         self.clip_duration = clip_duration
