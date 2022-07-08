@@ -88,13 +88,11 @@ class AliyunOssFs(BaseFs):
                 if osp.exists(local_path):
                     break
             except oss2.exceptions.NoSuchKey as e:
-                print(e)
                 return None
             except Exception as e:
                 retry += 1
 
         if retry >= self._retry_times:
-            print(e)
             return None
 
         if is_tmp:
@@ -114,7 +112,6 @@ class AliyunOssFs(BaseFs):
                 retry += 1
 
         if retry >= self._retry_times:
-            print(e)
             return False
 
         return True
