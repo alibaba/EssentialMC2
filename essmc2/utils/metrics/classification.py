@@ -28,7 +28,8 @@ class AccuracyMetric(object):
             A OrderedDict, contains accuracy tensors according to topk.
 
         """
-        assert self.maxk <= logits.shape[-1]
+        num_classes = logits.shape[-1]
+        maxk = min(self.maxk, num_classes)
 
         if isinstance(logits, np.ndarray):
             logits = torch.from_numpy(logits)
@@ -37,12 +38,14 @@ class AccuracyMetric(object):
 
         batch_size = logits.size(0)
 
-        _, pred = logits.topk(self.maxk, 1, True, True)
+        _, pred = logits.topk(maxk, 1, True, True)
         pred = pred.t()
         corrects = pred.eq(labels.view(1, -1).expand_as(pred))
 
         res = OrderedDict()
         for k in self.topk:
+            if k > maxk:
+                continue
             correct_k = corrects[:k].contiguous().view(-1).float().sum(0)
             res[f"{prefix}@{k}"] = correct_k.mul_(1.0 / batch_size)
         return res
