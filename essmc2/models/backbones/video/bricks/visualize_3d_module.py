@@ -2,7 +2,6 @@
 
 import os
 
-import matplotlib.pyplot as plt
 import torch.nn as nn
 
 
@@ -17,6 +16,7 @@ class Visualize3DModule(nn.Module):
         """
         Visualizes and saves the normalized output features for the module.
         """
+        import matplotlib.pyplot as plt
         if not self.visualize:
             return
         b, c, t, h, w = output_x.shape

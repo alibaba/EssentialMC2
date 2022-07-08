@@ -3,15 +3,10 @@
 import os.path as osp
 import random
 
-import decord
-import numpy as np
 import torch
-from decord import VideoReader
 
 from essmc2.utils.file_systems import FS
 from .registry import TRANSFORMS
-
-decord.bridge.set_bridge('torch')
 
 
 def _interval_based_sampling(vid_length, vid_fps, target_fps, clip_idx, num_clips, num_frames, interval,
@@ -105,6 +100,14 @@ class DecodeVideoToTensor(object):
             repeat (int): Number of clips to be decoded from each video, if repeat > 1, outputs will be named like
                 'video-0', 'video-1'. Normally, 1 for classification task, 2 for contrastive learning.
         """
+
+        try:
+            import decord
+        except:
+            import warnings
+            warnings.warn(f"You may run `pip install decord==0.6.0` to use {self.__class__.__name__}")
+            exit(-1)
+
         self.num_frames = num_frames
         self.target_fps = target_fps
         self.sample_mode = sample_mode
@@ -129,12 +132,15 @@ class DecodeVideoToTensor(object):
         Returns:
             A dict contains original input item and "video" tensor.
         """
+        import decord
+        decord.bridge.set_bridge('torch')
+
         meta = item["meta"]
         video_path = meta["video_path"] \
             if "prefix" not in meta else osp.join(meta["prefix"], meta["video_path"])
 
         with FS.get_from(video_path) as local_path:
-            vr = VideoReader(local_path)
+            vr = decord.VideoReader(local_path)
             # default is test mode
             clip_id = meta.get("clip_id") or 0
             num_clips = meta.get("num_clips") or 1
