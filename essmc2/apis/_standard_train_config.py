@@ -2,10 +2,6 @@ data = dict(
     train=dict(
         samples_per_gpu=2,
         workers_per_gpu=2,
-        data=dict(
-            type='',
-            mode='train',
-        )
     ),
     eval=None,
     pin_memory=False
@@ -22,8 +18,8 @@ solver = dict(
     do_final_eval=False,
     save_eval_data=False,
     eval_metric_cfg=None,
-    eval_keys=None,
-    optimizer=dict(type=''),
+    extra_keys=None,
+    optimizer=None,
     lr_scheduler=None,
     resume_from=None,
     work_dir='./work_dir',

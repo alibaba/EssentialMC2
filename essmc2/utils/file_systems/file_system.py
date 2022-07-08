@@ -1,6 +1,7 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 import warnings
 from contextlib import contextmanager
+import os.path as osp
 
 from .base_fs import BaseFs
 from .local_fs import LocalFs
@@ -181,9 +182,46 @@ class FileSystem(object):
             if is_tmp:
                 client.add_temp_file(local_path)
             yield local_path
+            if not osp.exists(local_path):
+                raise WriteException(f"{local_path} is not exists.")
             status = client.put_object_from_local_file(local_path, target_path)
             if not status:
                 raise WriteException(f"Failed to upload from {local_path} to {target_path}")
+
+    @contextmanager
+    def open(self, target_path, mode='r', encoding=None):
+        """ Mock builtin open function.
+
+        Args:
+            target_path (str): Local or remote path.
+            mode (str): Support 'r', 'w', 'rb', 'wb' only.
+            encoding (Optional[str]):
+        """
+        assert mode in ('r', 'w', 'rb', 'wb')
+        read_only = 'r' in mode
+
+        with self.get_fs_client(target_path) as client:
+            if read_only:
+                local_path = client.get_object_to_local_file(target_path)
+                if local_path is None:
+                    raise ReadException(f"Failed to fetch {target_path}")
+                try:
+                    handler = open(local_path, mode=mode, encoding=encoding)
+                    yield handler
+                finally:
+                    handler.close()
+            else:
+                local_path, is_tmp = client.map_to_local(target_path)
+                if is_tmp:
+                    client.add_temp_file(local_path)
+                try:
+                    handler = open(local_path, mode=mode, encoding=encoding)
+                    yield handler
+                finally:
+                    handler.close()
+                status = client.put_object_from_local_file(local_path, target_path)
+                if not status:
+                    raise WriteException(f"Failed to write to {target_path}")
 
     def __repr__(self) -> str:
         s = "Support prefix list:\n"

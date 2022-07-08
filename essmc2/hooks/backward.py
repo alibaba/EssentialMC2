@@ -19,7 +19,18 @@ class BackwardHook(Hook):
             if solver.loss is None:
                 warnings.warn("solver.loss should not be None in train mode, remember to call solver._reduce_scalar()!")
                 return
-            solver.optimizer.zero_grad()
+
+            if isinstance(solver.optimizer, dict):
+                for _, value in solver.optimizer.items():
+                    value.zero_grad()
+            else:
+                solver.optimizer.zero_grad()
+
             solver.loss.backward()
-            solver.optimizer.step()
+
+            if isinstance(solver.optimizer, dict):
+                for _, value in solver.optimizer.items():
+                    value.step()
+            else:
+                solver.optimizer.step()
             solver.loss = None

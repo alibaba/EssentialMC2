@@ -27,7 +27,11 @@ class OssLoggingHandler(logging.StreamHandler):
 
     def emit(self, record):
         msg = self.format(record) + "\n"
-        self._pos = self._bucket.append_object(self._log_file, self._pos.next_position, msg)
+        try:
+            self._pos = self._bucket.append_object(self._log_file, self._pos.next_position, msg)
+        except oss2.exceptions.PositionNotEqualToLength as e:
+            self._pos = self._bucket.get_object_meta(self._log_file).content_length
+            self._pos = self._bucket.append_object(self._log_file, self._pos.next_position, msg)
 
 
 @FILE_SYSTEMS.register_class()

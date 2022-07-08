@@ -11,6 +11,7 @@ from essmc2.utils.logger import get_logger
 from essmc2.utils.typing import check_dict_of_str_dict
 from ..lr_schedulers import LR_SCHEDULERS
 from ..optimizers import OPTIMIZERS
+from typing import Union, Dict
 
 
 class BaseSolver(object, metaclass=ABCMeta):
@@ -41,8 +42,8 @@ class BaseSolver(object, metaclass=ABCMeta):
                  num_folds=1,
                  hooks=None):
         self.model: torch.nn.Module = model
-        self.optimizer: torch.optim.optimizer.Optimizer = self._get_optimizer(optimizer)
-        self.lr_scheduler = self._get_lr_scheduler(lr_scheduler)
+        self.optimizer: Union[torch.optim.optimizer.Optimizer, Dict[str, torch.optim.optimizer.Optimizer]] = self.build_optimizer(optimizer)
+        self.lr_scheduler = self.build_lr_scheduler(lr_scheduler)
         self.resume_from = resume_from
         self.work_dir = work_dir
         self.logger = logger or get_logger()
@@ -55,6 +56,7 @@ class BaseSolver(object, metaclass=ABCMeta):
         self._epoch_max_iter: defaultdict = defaultdict(int)
         self._iter: defaultdict = defaultdict(int)
         self._total_iter: defaultdict = defaultdict(int)
+        self._iter_inputs = defaultdict(dict)
         self._iter_outputs = defaultdict(dict)
         self._agg_iter_outputs = defaultdict(dict)
         self._epoch_outputs = defaultdict(dict)
@@ -106,14 +108,20 @@ class BaseSolver(object, metaclass=ABCMeta):
         [t.after_epoch(self) for t in self._hooks]
         self._epoch += self._num_folds
         self._iter.clear()
+        self._iter_inputs.clear()
         self._iter_outputs.clear()
         self._epoch_outputs.clear()
 
     def collect_log_vars(self) -> OrderedDict:
         ret = OrderedDict()
         if self.is_train_mode and self.optimizer is not None:
-            lr = self.optimizer.param_groups[0]["lr"]
-            ret["lr"] = lr
+            if not isinstance(self.optimizer, dict):
+                lr = self.optimizer.param_groups[0]["lr"]
+                ret["lr"] = lr
+            else:
+                for key, value in self.optimizer.items():
+                    lr = self.optimizer[key].param_groups[0]['lr']
+                    ret[f'{key}_lr'] = lr
         return ret
 
     @abstractmethod
@@ -160,6 +168,10 @@ class BaseSolver(object, metaclass=ABCMeta):
     @property
     def mode(self) -> str:
         return self._mode
+
+    @property
+    def iter_inputs(self) -> dict:
+        return self._iter_inputs[self._mode]
 
     @property
     def iter_outputs(self) -> dict:
@@ -212,15 +224,12 @@ class BaseSolver(object, metaclass=ABCMeta):
                 self._hooks.append(HOOKS.build(hook_cfg))
         self._hooks.sort(key=lambda a: a.priority)
 
-    def get_optim_parameters(self):
-        return [p for p in self.model.parameters() if p.requires_grad]
-
-    def _get_optimizer(self, cfg):
+    def build_optimizer(self, cfg):
         if cfg is None:
             return None
-        return OPTIMIZERS.build(self.get_optim_parameters(), cfg)
+        return OPTIMIZERS.build(self.model, cfg)
 
-    def _get_lr_scheduler(self, cfg):
+    def build_lr_scheduler(self, cfg):
         if cfg is None:
             return None
         if self.optimizer is None:

@@ -2,10 +2,11 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
 import argparse
+import datetime
 import os
 import os.path as osp
+import shutil
 import sys
-import time
 
 import torch.cuda
 
@@ -143,13 +144,13 @@ def main():
     # Prepare work directory
     if rank == 0:
         local_work_dir = work_dir if FS.is_local_client(work_dir) \
-            else osp.join("./", osp.basename(args.work_dir), config_name)
+            else osp.join("./", osp.basename(args.work_dir), '.' + config_name)
         os.makedirs(local_work_dir, exist_ok=True)
         FS.add_target_local_map(work_dir, local_work_dir)
 
     # Configure logger
-    run_id = int(time.time())
-    log_file = os.path.join(work_dir, f"{run_id}.log")
+    run_id = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_file = os.path.join(work_dir, f"train-{run_id}.log")
     logger = get_logger()
     init_logger(logger, log_file, cfg.dist.launcher)
     logger.info(f"Running task with work directory: {work_dir}")
@@ -191,6 +192,13 @@ def main():
     # Begin solve
     solver.solve(data)
     logger.info(f"Solved")
+
+    if rank == 0:
+        if not FS.is_local_client(work_dir):
+            try:
+                shutil.rmtree(local_work_dir)
+            except:
+                pass
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 import datetime
+import os
 import os.path as osp
 import random
 import tempfile
@@ -64,7 +65,9 @@ class BaseFs(object, metaclass=ABCMeta):
         """
         for target_dir, local_dir in self._target_local_mapper.items():
             if target_path.startswith(target_dir):
-                return osp.join(local_dir, osp.relpath(target_path, target_dir)), False
+                local_path = osp.join(local_dir, osp.relpath(target_path, target_dir))
+                os.makedirs(osp.dirname(local_path), exist_ok=True)
+                return local_path, False
         else:
             return self._make_temporary_file(target_path), True
 

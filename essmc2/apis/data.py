@@ -11,16 +11,17 @@ from essmc2.utils.config import Config
 from essmc2.utils.data import worker_init_fn
 from essmc2.utils.distribute import get_dist_info
 from essmc2.utils.logger import get_logger
-from essmc2.utils.sampler import MultiFoldDistributedSampler, EvalDistributedSampler
+from essmc2.utils.sampler import MultiFoldDistributedSampler, EvalDistributedSampler, MultiFoldRandomSampler
 
 
-def get_data(cfg: Config, logger: Optional[logging.Logger] = None):
+def get_data(cfg: Config, logger: Optional[logging.Logger] = None, eval_only: bool = False):
     logger = logger or get_logger()
     device_id = torch.cuda.current_device()
     data = {}
-    if "train" in cfg.data:
-        train_dataloader = _get_train_data(cfg, device_id, logger)
-        data['train'] = train_dataloader
+    if not eval_only:
+        if "train" in cfg.data:
+            train_dataloader = _get_train_data(cfg, device_id, logger)
+            data['train'] = train_dataloader
     if "eval" in cfg.data:
         eval_dataloader = _get_eval_data(cfg, device_id, logger)
         data['eval'] = eval_dataloader
@@ -49,9 +50,15 @@ def _get_train_data(cfg: Config, device_id: int, logger: logging.Logger):
             train_sampler = DistributedSampler(train_dataset, world_size, rank, shuffle=True)
         drop_last = True
     else:
-        shuffle = True
-        train_sampler = None
-        drop_last = False
+        num_folds = cfg.solver.get("num_folds") or 1
+        if num_folds == 1:
+            shuffle = True
+            train_sampler = None
+            drop_last = False
+        else:
+            shuffle = False
+            train_sampler = MultiFoldRandomSampler(train_dataset, num_folds)
+            drop_last = False
 
     train_dataloader = DataLoader(
         train_dataset,

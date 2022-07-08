@@ -25,8 +25,8 @@ class TrainValSolver(EvaluationSolver):
         self._epoch_max_iter[self._mode] = len(train_data_loader)
         for data in train_data_loader:
             self.before_iter()
-            data_gpu = transfer_data_to_cuda(data)
-            self._iter_outputs[self._mode] = self._reduce_scalar(self.model(**data_gpu))
+            self._iter_inputs[self._mode] = transfer_data_to_cuda(data)
+            self._iter_outputs[self._mode] = self._reduce_scalar(self.model(**self._iter_inputs[self._mode]))
             self.after_iter()
         self.after_all_iter()
 
@@ -44,18 +44,42 @@ class TrainValSolver(EvaluationSolver):
         for mode_name, total_iter in checkpoint["total_iters"].items():
             self._total_iter[mode_name] = total_iter
         self.model.load_state_dict(checkpoint["state_dict"])
-        self.optimizer.load_state_dict(checkpoint["checkpoint"])
+
+        if isinstance(self.optimizer, dict):
+            for key, value in checkpoint['optimizer'].items():
+                self.optimizer[key].load_state_dict(value)
+        else:
+            self.optimizer.load_state_dict(checkpoint["optimizer"])
+
         if self.lr_scheduler is not None:
-            self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
-        self._epoch += 1  # Move to next epoch
+            if isinstance(self.lr_scheduler, dict):
+                for key, value in checkpoint['lr_scheduler'].items():
+                    self.lr_scheduler[key].load_state_dict(value)
+            else:
+                self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
+        self._epoch += self.num_folds  # Move to next epoch
 
     def save_checkpoint(self) -> dict:
         checkpoint = {
             "epoch": self._epoch,
             "total_iters": self._total_iter,
             "state_dict": self.model.state_dict(),
-            "checkpoint": self.optimizer.state_dict(),
         }
+
+        if isinstance(self.optimizer, dict):
+            optimizer_state_dict = {}
+            for key, value in self.optimizer.items():
+                optimizer_state_dict[key] = value.state_dict()
+            checkpoint['optimizer'] = optimizer_state_dict
+        else:
+            checkpoint['optimizer'] = self.optimizer.state_dict()
+
         if self.lr_scheduler is not None:
-            checkpoint["lr_scheduler"] = self.lr_scheduler.state_dict()
+            if isinstance(self.lr_scheduler, dict):
+                lr_scheduler_state_dict = {}
+                for key, value in self.lr_scheduler.items():
+                    lr_scheduler_state_dict[key] = value.state_dict()
+                checkpoint['lr_scheduler'] = lr_scheduler_state_dict
+            else:
+                checkpoint["lr_scheduler"] = self.lr_scheduler.state_dict()
         return checkpoint

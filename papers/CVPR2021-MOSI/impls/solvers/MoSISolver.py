@@ -1,5 +1,6 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
+from essmc2.optimizers import OPTIMIZERS
 from essmc2.solvers import SOLVERS
 from essmc2.solvers import TrainValSolver
 
@@ -10,7 +11,7 @@ class MoSISolver(TrainValSolver):
         self.bn_weight_decay = bn_weight_decay
         super(MoSISolver, self).__init__(model, **kwargs)
 
-    def get_optim_parameters(self):
+    def build_optimizer(self, cfg):
         bn_params = []
         bn_params_names = []
         non_bn_params = []
@@ -38,7 +39,6 @@ class MoSISolver(TrainValSolver):
             {"params": non_bn_params, "names": non_bn_params_names},
             {"params": head_params, "names": head_params_names},
             {"params": no_weight_decay_params, "names": no_weight_decay_params_names, "weight_decay": 0.0}
-
         ]
 
-        return optim_params
+        return OPTIMIZERS.build(optim_params, cfg)

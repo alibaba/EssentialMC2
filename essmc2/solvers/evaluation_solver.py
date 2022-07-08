@@ -12,6 +12,7 @@ from ..utils.distribute import gather_data
 from ..utils.distribute import get_dist_info
 from ..utils.file_systems import FS
 from ..utils.metrics import METRICS
+from ..utils.sampler import EvalDistributedSampler
 
 
 def _get_value(data: dict, key: str):
@@ -97,13 +98,14 @@ class EvaluationSolver(BaseSolver):
         self.before_all_iter()
         for data in val_data_loader:
             self.before_iter()
-            data_gpu = transfer_data_to_cuda(data)
-            result = self.model(**data_gpu)
+            self._iter_inputs[self._mode] = transfer_data_to_cuda(data)
+            result = self.model(**self._iter_inputs[self._mode])
 
             self._iter_outputs[self._mode] = self._reduce_scalar(result)
 
             if self.do_final_eval or self.save_eval_data:
                 # Collect data
+                data_gpu = self._iter_inputs[self._mode].copy()
                 if isinstance(result, torch.Tensor):
                     data_gpu["result"] = result
                 elif isinstance(result, dict):
@@ -140,7 +142,7 @@ class EvaluationSolver(BaseSolver):
 
             # If distributed and use DistributedSampler
             # Gather all collect data to rank 0
-            if world_size > 0 and type(val_data_loader.sampler) is torch.utils.data.DistributedSampler:
+            if world_size > 0 and type(val_data_loader.sampler) is EvalDistributedSampler:
                 concat_collect_data = {key: gather_data(concat_collect_data[key]) for key in self._collect_keys}
 
             # Do final evaluate
