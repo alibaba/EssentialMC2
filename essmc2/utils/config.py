@@ -17,13 +17,13 @@
 import copy
 import inspect
 import json
+import numbers
 import os
 import os.path as osp
 import sys
 import warnings
 from importlib import import_module
 from typing import Optional, Type
-import numbers
 
 from addict import Dict
 from yapf.yapflib.yapf_api import FormatCode
@@ -48,6 +48,18 @@ _SECURE_KEYWORDS = [
 _BASE_KEY = "_base_"
 _DELETE_KEY = "_delete_"
 _RESERVE_KEY = "_reserve_"
+
+
+class ValueComment(object):
+    """ Add a comment to the value.
+    """
+
+    def __init__(self, value, comment):
+        self.value = value
+        self.comment = comment
+
+    def __repr__(self):
+        return f"{self.value} # {self.comment}"
 
 
 class ConfigDict(Dict):
@@ -416,8 +428,18 @@ class Config(object):
     @staticmethod
     def _dump_list(v):
         v_str = '['
+
         s = []
+        s_comments = []
+
         for vv in v:
+            # check if comment exists
+            comment_str = ''
+            if isinstance(vv, ValueComment):
+                comment_str = vv.comment
+                comment_str = comment_str.replace('\n', '# \n')
+                vv = vv.value
+
             if isinstance(vv, dict):
                 tmp = Config._dump_dict(vv)
                 o_str = f'dict({tmp})'
@@ -426,8 +448,16 @@ class Config(object):
                 s.append(Config._dump_list(vv))
             else:
                 s.append(f"'{vv}'" if isinstance(vv, str) else str(vv))
-        v_str += ', '.join(s)
+
+            s_comments.append(comment_str)
+
+        for _s, _comment in zip(s, s_comments):
+            if len(_comment) > 0:
+                v_str += (f"{_s}, " + f"  # {_comment}\n")
+            else:
+                v_str += f"{_s}, "
         v_str += ']'
+
         return v_str
 
     @staticmethod
@@ -435,6 +465,7 @@ class Config(object):
         if secure_keys is None:
             secure_keys = set(_SECURE_KEYWORDS)
         s = []
+        s_comments = []
 
         for i, (k, v) in enumerate(input_dict.items()):
             # Secure mode, replace value by ***
@@ -442,6 +473,13 @@ class Config(object):
                 v = "***"
             k_str = f"{k}" if isinstance(k, str) else str(k)
             end = '' if i == len(input_dict) - 1 or root_level else ' '
+
+            comment_str = ''
+            if isinstance(v, ValueComment):
+                comment_str = v.comment
+                comment_str = comment_str.replace('\n', '# \n')
+                v = v.value
+
             if isinstance(v, dict):
                 v_str = Config._dump_dict(v)
                 o_str = f'{k_str}=dict({v_str}' + ')' + end
@@ -451,8 +489,22 @@ class Config(object):
                 v_str = f"'{v}'" if isinstance(v, str) else str(v)
                 o_str = f"{k_str}={v_str}"
             s.append(o_str)
+            s_comments.append(comment_str)
 
-        return '\n'.join(s) if root_level else ', '.join(s)
+        ret = ""
+        for _s, _s_comment in zip(s, s_comments):
+            if root_level:
+                if len(_s_comment) > 0:
+                    ret += (_s + "  # " + _s_comment + '\n')
+                else:
+                    ret += (_s + '\n')
+            else:
+                if len(_s_comment) > 0:
+                    ret += (_s + ",  # " + _s_comment + "\n")
+                else:
+                    ret += (_s + ', \n')
+
+        return ret
 
     def _dumps_json(self):
         deep_copy = copy.deepcopy(self._cfg_dict)
