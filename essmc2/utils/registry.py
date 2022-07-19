@@ -18,7 +18,13 @@
 
 import copy
 import inspect
+import types
 import warnings
+from collections import OrderedDict
+
+from docstring_parser import parser
+
+from .config import ValueComment
 
 
 def build_from_config(cfg, registry, **kwargs):
@@ -71,6 +77,99 @@ def build_from_config(cfg, registry, **kwargs):
         raise TypeError(f"type must be str or class, got {type(req_type_entry)}")
 
 
+def _get_doc_params(doc_str):
+    doc = parser.parse(doc_str)
+    ret = OrderedDict()
+    for param in doc.params:
+        name = param.arg_name
+        desc = param.description
+        if desc is not None:
+            ret[name] = desc
+    return ret
+
+
+def get_class_arguments(cls):
+    args = OrderedDict()
+
+    for type_c in cls.__mro__:
+        param_doc_dict = _get_doc_params(type_c.__doc__)
+        for key, value in inspect.signature(type_c).parameters.items():
+            if value.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD:
+                continue
+            if key in args:
+                continue
+
+            default_value = None
+            default_doc = ""
+
+            if value.default != inspect.Parameter.empty:
+                default_value = value.default
+            else:
+                default_doc = f"TODO: Complete this value for type {type_c.__name__}"
+                if value.annotation != inspect.Parameter.empty:
+                    try:
+                        try_value = value.annotation()
+                        default_value = try_value
+                        default_doc += f", use default from type {value.annotation.__name__}()"
+                    except:
+                        pass
+                default_doc += "."
+
+            if key in param_doc_dict:
+                doc = param_doc_dict[key]
+                if len(doc.split('\n')) <= 1 or len(default_doc) == 0:
+                    default_doc += doc
+                else:
+                    default_doc += ('\n' + doc)
+
+            args[key] = ValueComment(default_value, default_doc)
+    return args
+
+
+def get_function_arguments(func):
+    args = OrderedDict()
+
+    parameters = inspect.signature(func).parameters
+    param_doc_dict = _get_doc_params(func.__doc__)
+
+    for key, value in parameters.items():
+        if value.kind == inspect.Parameter.VAR_KEYWORD:
+            args[key] = ValueComment(dict(), '')
+            continue
+        elif value.kind == inspect.Parameter.VAR_POSITIONAL:
+            args[key] = ValueComment(list(), '')
+            continue
+        elif value.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD:
+            continue
+
+        default_value = None
+        default_doc = ""
+
+        if value.default != inspect.Parameter.empty:
+            default_value = value.default
+        else:
+            default_doc = f"TODO: Complete this value for type {func.__name__}"
+            if value.annotation != inspect.Parameter.empty:
+                try:
+                    try_value = value.annotation()
+                    default_value = try_value
+                    default_doc += f", use default from type {value.annotation.__name__}()"
+                except:
+                    pass
+            default_doc += "."
+
+        if key in param_doc_dict:
+            doc = param_doc_dict[key]
+            if len(doc.split('\n')) <= 1 or len(default_doc) == 0:
+                default_doc += doc
+            else:
+                default_doc += ('\n' + doc)
+
+        args[key] = ValueComment(default_value, default_doc)
+
+    return args
+
+
 class Registry(object):
     """ A registry maps key to classes or functions.
 
@@ -93,12 +192,16 @@ class Registry(object):
         allow_types (tuple): Indicates how to construct the instance, by constructing class or invoking function.
     """
 
+    REGISTRY_LIST = []
+
     def __init__(self, name, build_func=None, allow_types=("class", "function")):
         self.name = name
         self.allow_types = allow_types
-        self.class_map = {}
-        self.func_map = {}
+        self.class_map = OrderedDict()
+        self.func_map = OrderedDict()
         self.build_func = build_func or build_from_config
+
+        Registry.REGISTRY_LIST.append(self)
 
     def get(self, req_type):
         return self.class_map.get(req_type) or self.func_map.get(req_type)
@@ -128,13 +231,67 @@ class Registry(object):
             if "function" not in self.allow_types:
                 raise TypeError(f"Registry {self.name} only allows type {self.allow_types}, got function")
             func_name = name or func.__name__
-            if func_name in self.class_map:
+            if func_name in self.func_map:
                 warnings.warn(f"Function {func_name} already registered by {self.func_map[func_name]}, "
                               f"will be replaced by {func}")
             self.func_map[func_name] = func
             return func
 
         return _register
+
+    def register_by_hand(self, instance, name=None):
+        """ Register a instance without class or function annotations.
+        Args:
+            instance (function or class):
+            name (Optional[str]):
+
+        """
+        if inspect.isfunction(instance) and isinstance(instance, types.LambdaType) and instance.__name__ == "<lambda>":
+            if name is None:
+                raise ValueError("Lambda function needs a explicit name, got None")
+
+        name = name or instance.__name__
+
+        if inspect.isfunction(instance):
+            if "function" not in self.allow_types:
+                raise TypeError(f"Registry {name} only allows type {self.allow_types}, got function")
+
+            if name in self.func_map:
+                warnings.warn(f"Function {name} already registered by {self.func_map[name]}, "
+                              f"will be replaced by {instance}")
+
+            self.func_map[name] = instance
+
+        elif inspect.isclass(instance):
+            if "class" not in self.allow_types:
+                raise TypeError(f"Registry {name} only allows type {self.allow_types}, got class")
+
+            if name in self.class_map:
+                warnings.warn(f"Class {name} already registered by {self.class_map[name]}, "
+                              f"will be replaced by {instance}")
+
+            self.class_map[name] = instance
+
+        else:
+            raise TypeError(f"Expect instance to be a function or a class, got {type(instance)}")
+
+    def fetch_parameters(self, req_type):
+        """ Get full parameter dict of required req_type.
+        Args:
+            req_type (str): Required type name.
+
+        Returns:
+            An ordered dict of arguments, including default value and some comments.
+        """
+        if req_type in self.class_map:
+            return get_class_arguments(self.class_map[req_type])
+        elif req_type in self.func_map:
+            return get_function_arguments(self.func_map[req_type])
+        else:
+            raise ValueError(f"Unexpected type {req_type}")
+
+    def contains(self, req_type):
+        return req_type in self.class_map or req_type in self.func_map
 
     def _list(self):
         keys = sorted(list(self.class_map.keys()) + list(self.func_map.keys()))
