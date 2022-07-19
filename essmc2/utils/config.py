@@ -421,7 +421,9 @@ class Config(object):
             based_on_style='pep8',
             blank_line_before_nested_class_or_def=True,
             split_before_expression_after_opening_paren=True,
-            DEDENT_CLOSING_BRACKETS=True)
+            DEDENT_CLOSING_BRACKETS=True,
+            COLUMN_LIMIT=120,
+        )
         text, _ = FormatCode(s, style_config=style, verify=True)
         return text
 
@@ -477,7 +479,7 @@ class Config(object):
             comment_str = ''
             if isinstance(v, ValueComment):
                 comment_str = v.comment
-                comment_str = comment_str.replace('\n', '# \n')
+                comment_str = comment_str.replace('\n', '\n# ')
                 v = v.value
 
             if isinstance(v, dict):

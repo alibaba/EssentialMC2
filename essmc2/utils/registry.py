@@ -22,6 +22,8 @@ import types
 import warnings
 from collections import OrderedDict
 
+from docstring_parser import parser
+
 from .config import ValueComment
 
 
@@ -75,10 +77,22 @@ def build_from_config(cfg, registry, **kwargs):
         raise TypeError(f"type must be str or class, got {type(req_type_entry)}")
 
 
+def _get_doc_params(doc_str):
+    doc = parser.parse(doc_str)
+    ret = OrderedDict()
+    for param in doc.params:
+        name = param.arg_name
+        desc = param.description
+        if desc is not None:
+            ret[name] = desc
+    return ret
+
+
 def get_class_arguments(cls):
     args = OrderedDict()
 
     for type_c in cls.__mro__:
+        param_doc_dict = _get_doc_params(type_c.__doc__)
         for key, value in inspect.signature(type_c).parameters.items():
             if value.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD:
                 continue
@@ -101,6 +115,13 @@ def get_class_arguments(cls):
                         pass
                 default_doc += "."
 
+            if key in param_doc_dict:
+                doc = param_doc_dict[key]
+                if len(doc.split('\n')) <= 1 or len(default_doc) == 0:
+                    default_doc += doc
+                else:
+                    default_doc += ('\n' + doc)
+
             args[key] = ValueComment(default_value, default_doc)
     return args
 
@@ -109,6 +130,7 @@ def get_function_arguments(func):
     args = OrderedDict()
 
     parameters = inspect.signature(func).parameters
+    param_doc_dict = _get_doc_params(func.__doc__)
 
     for key, value in parameters.items():
         if value.kind == inspect.Parameter.VAR_KEYWORD:
@@ -135,6 +157,13 @@ def get_function_arguments(func):
                 except:
                     pass
             default_doc += "."
+
+        if key in param_doc_dict:
+            doc = param_doc_dict[key]
+            if len(doc.split('\n')) <= 1 or len(default_doc) == 0:
+                default_doc += doc
+            else:
+                default_doc += ('\n' + doc)
 
         args[key] = ValueComment(default_value, default_doc)
 

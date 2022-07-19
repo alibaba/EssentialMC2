@@ -76,14 +76,14 @@ class RandomResizedCrop(ImageTransform):
     If the image is torch Tensor, it is expected to have [..., H, W] shape.
 
     Args:
-    size (int or sequence): Desired output size.
-        If size is a sequence like (h, w), the output size will be matched to this.
-        If size is an int, the output size will be matched to (size, size).
-    scale (tuple of float): Specifies the lower and upper bounds for the random area of the crop,
-        before resizing. The scale is defined with respect to the area of the original image.
-    ratio (tuple of float): lower and upper bounds for the random aspect ratio of the crop, before
-        resizing.
-    interpolation (str): Desired interpolation string, 'bilinear', 'nearest', 'bicubic' are supported.
+        size (int or sequence): Desired output size.
+            If size is a sequence like (h, w), the output size will be matched to this.
+            If size is an int, the output size will be matched to (size, size).
+        scale (tuple of float): Specifies the lower and upper bounds for the random area of the crop,
+            before resizing. The scale is defined with respect to the area of the original image.
+        ratio (tuple of float): lower and upper bounds for the random aspect ratio of the crop, before
+            resizing.
+        interpolation (str): Desired interpolation string, 'bilinear', 'nearest', 'bicubic' are supported.
     """
 
     def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.), interpolation='bilinear', **kwargs):

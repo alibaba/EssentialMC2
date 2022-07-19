@@ -7,3 +7,4 @@ packaging==21.0
 oss2>=2.13.1
 opencv-python>=4.1.0
 einops>=0.3.2
+docstring-parser==0.14.1
