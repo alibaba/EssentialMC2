@@ -15,7 +15,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import copy
 import inspect
 import types
@@ -93,7 +92,9 @@ def get_class_arguments(cls):
 
     for type_c in cls.__mro__:
         param_doc_dict = _get_doc_params(type_c.__doc__)
-        for key, value in inspect.signature(type_c).parameters.items():
+        parameters = {key: value for key, value in inspect.signature(type_c.__init__).parameters.items() if
+                      key != 'self'}
+        for key, value in parameters.items():
             if value.kind != inspect.Parameter.POSITIONAL_OR_KEYWORD:
                 continue
             if key in args:
