@@ -242,7 +242,7 @@ class Config(object):
         Raises:
             An exception will raise if unsupported type file occurs.
         """
-        if filename.endswith(".py"):
+        if filename.endswith((".py", ".pysc", ".pyc", ".pyo", ".pyd", ".pyx")):
             cfg_dict = Config._parse_python_file(filename)
         elif filename.endswith(".json"):
             cfg_dict = Config._parse_json_file(filename)
@@ -260,11 +260,11 @@ class Config(object):
         filepath = os.path.abspath(os.path.expanduser(filename))
         if not os.path.exists(filepath):
             raise Exception(f"File {filepath} not found")
-        if not filepath.endswith(".py"):
+        if not filepath.endswith((".py", ".pysc", ".pyc", ".pyo", ".pyd", ".pyx")):
             raise Exception(f"File {filepath} is not python file")
         file_dir = os.path.dirname(filepath)
         sys.path.insert(0, file_dir)
-        module_name = os.path.basename(filepath).replace('.py', '')
+        module_name, _ = os.path.splitext(os.path.basename(filepath))
         module = import_module(module_name)
         sys.path.pop(0)
         cfg_dict = {name: value for name, value in module.__dict__.items() if not name.startswith("__") and
@@ -386,7 +386,7 @@ class Config(object):
         Raises:
             An exception will raise if unsupported type file inputs.
         """
-        if file.endswith(".py"):
+        if file.endswith((".py", ".pysc", ".pyc", ".pyo", ".pyd", ".pyx")):
             s = self.dumps(dump_format="py")
         elif file.endswith(".json"):
             s = self.dumps(dump_format="json")
