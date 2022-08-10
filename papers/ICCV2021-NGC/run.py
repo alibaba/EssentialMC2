@@ -8,8 +8,12 @@ import time
 
 from torch.utils.data import DataLoader
 
-from essmc2 import Config, DATASETS, MODELS, SOLVERS, get_logger
+from essmc2.datasets import DATASETS
+from essmc2.models import MODELS
+from essmc2.solvers import SOLVERS
+from essmc2.utils.config import Config
 from essmc2.utils.ext_module import import_ext_module
+from essmc2.utils.logger import get_logger
 from essmc2.utils.logger import init_logger
 from essmc2.utils.random import set_random_seed
 
