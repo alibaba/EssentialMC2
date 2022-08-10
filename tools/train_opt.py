@@ -8,20 +8,21 @@ import os.path as osp
 import shutil
 import sys
 
-import torch.cuda
-
 sys.path.insert(0, osp.dirname(osp.dirname(__file__)))
 
-from essmc2 import Config, SOLVERS, get_logger
+import torch.cuda
+
+from essmc2.apis.config import get_train_base_config
+from essmc2.apis.data import get_data
+from essmc2.apis.model import get_model
+from essmc2.solvers import SOLVERS
+from essmc2.utils.config import Config
 from essmc2.utils.distribute import init_dist, get_dist_info
 from essmc2.utils.ext_module import import_ext_module
 from essmc2.utils.file_systems import FS
+from essmc2.utils.logger import get_logger
 from essmc2.utils.logger import init_logger
 from essmc2.utils.random import set_random_seed
-
-from essmc2.apis.config import get_train_base_config
-from essmc2.apis.model import get_model
-from essmc2.apis.data import get_data
 
 
 def parse_args():

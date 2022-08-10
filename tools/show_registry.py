@@ -7,10 +7,9 @@ import sys
 
 sys.path.insert(0, osp.dirname(osp.dirname(__file__)))
 
-from essmc2.utils.ext_module import import_ext_module
-
-from essmc2.utils.registry import Registry
 from essmc2.utils.config import Config
+from essmc2.utils.ext_module import import_ext_module
+from essmc2.utils.registry import Registry
 
 
 def display_all_modules():
