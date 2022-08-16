@@ -1,12 +1,12 @@
 # Copyright 2021 Alibaba Group Holding Limited. All Rights Reserved.
 
 
-import os
 import re
 from collections import OrderedDict
 
 import torch
-from torch.utils.model_zoo import load_url as load_state_dict_from_url
+
+from essmc2.utils.file_systems import FS
 
 
 def move_model_to_cpu(params):
@@ -20,14 +20,9 @@ def load_pretrained(model: torch.nn.Module, path: str, map_location="cpu", logge
                     sub_level=None):
     if logger:
         logger.info(f"Load pretrained model [{model.__class__.__name__}] from {path}")
-    if os.path.exists(path):
-        # From local
-        state_dict = torch.load(path, map_location)
-    elif path.startswith("http"):
-        # From url
-        state_dict = load_state_dict_from_url(path, map_location=map_location, check_hash=False)
-    else:
-        raise Exception(f"Cannot find {path} when load pretrained")
+
+    with FS.get_from(path) as local_path:
+        state_dict = torch.load(local_path, map_location)
 
     return load_pretrained_dict(model, state_dict, logger, sub_level=sub_level)
 

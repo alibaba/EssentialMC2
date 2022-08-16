@@ -38,8 +38,7 @@ def build_model(cfg, registry, **kwargs):
 
     # Get the model to local file
     path = pretrain_cfg.pop("path")
-    with FS.get_from(path) as local_file:
-        load_pretrained(model, local_file, logger=get_logger(), **pretrain_cfg)
+    load_pretrained(model, path, logger=get_logger(), **pretrain_cfg)
 
     return model
 
