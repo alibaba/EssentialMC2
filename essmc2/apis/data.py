@@ -22,7 +22,7 @@ def get_data(cfg: Config, logger: Optional[logging.Logger] = None, eval_only: bo
         if "train" in cfg.data:
             train_dataloader = _get_train_data(cfg, device_id, logger)
             data['train'] = train_dataloader
-    if "eval" in cfg.data:
+    if cfg.data.get("eval") is not None:
         eval_dataloader = _get_eval_data(cfg, device_id, logger)
         data['eval'] = eval_dataloader
 
