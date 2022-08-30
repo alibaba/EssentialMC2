@@ -15,6 +15,19 @@ from ..utils.file_systems import FS
 _DEFAULT_TENSORBOARD_PRIORITY = 101
 
 
+def _print_dict(kvs: dict) -> list:
+    ret = []
+    for key, value in kvs.items():
+        if isinstance(value, dict):
+            res = _print_dict(value)
+            for prefix, vv in res:
+                prefix.insert(0, key)
+                ret.append((prefix, vv))
+        else:
+            ret.append(([key], value))
+    return ret
+
+
 @HOOKS.register_class()
 class TensorboardLogHook(Hook):
     def __init__(self, log_dir=None, **kwargs):
@@ -24,7 +37,7 @@ class TensorboardLogHook(Hook):
         self._local_log_dir = None
         try:
             from torch.utils.tensorboard import SummaryWriter
-        except:
+        except ImportError:
             import warnings
             warnings.warn(f"You may run `pip install tensorboard` to use {self.__class__.__name__}")
             exit(-1)
@@ -75,9 +88,11 @@ class TensorboardLogHook(Hook):
         if self.writer is None:
             return
         outputs = solver.epoch_outputs.copy()
-        for mode, kvs in outputs.items():
-            for key, value in kvs.items():
-                self.writer.add_scalar(f"{mode}/epoch/{key}", value, global_step=solver.epoch)
+        ret = _print_dict(outputs)
+        for prefix, value in ret:
+            prefix.insert(1, 'epoch')
+            prefix_str = '/'.join(prefix)
+            self.writer.add_scalar(prefix_str, value, global_step=solver.epoch)
 
         self.writer.flush()
         # Put to remote file systems every epoch

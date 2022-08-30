@@ -17,10 +17,14 @@ def _format_float(x):
         return 'inf'
     if math.isnan(x):
         return 'nan'
-    if abs(x) - int(abs(x)) < 0.01:
-        return "{:.6f}".format(x)
-    else:
-        return "{:.4f}".format(x)
+    if abs(x) < 1.0:
+        diff = abs(x) - int(abs(x))
+        if diff < 0.01:
+            return "{:.6f}".format(x)
+        elif diff < 0.0001:
+            return "{:.8f}".format(x)
+
+    return "{:.4f}".format(x)
 
 
 def _print_v(x):
@@ -30,6 +34,39 @@ def _print_v(x):
         return _print_v(x.item())
     else:
         return f"{x}"
+
+
+def _print_dict(kvs: dict) -> list:
+    # if value is dict，show it later
+    lines = []
+    dict_keys = []
+    normal_keys = []
+    for key in kvs.keys():
+        if isinstance(kvs[key], dict):
+            dict_keys.append(key)
+        else:
+            normal_keys.append(key)
+
+    normal_line_fields = [f"{k}: " + _print_v(kvs[k]) for k in normal_keys]
+
+    dict_lines = []
+    for key in dict_keys:
+        inner_lines = _print_dict(kvs[key])
+        if '->' not in inner_lines[0]:
+            dict_lines.append(f"{key} -> {inner_lines[0]}")
+            for s in inner_lines[1:]:
+                dict_lines.append(f"\t{s}")
+        else:
+            dict_lines.append(f"{key} -> ")
+            for s in inner_lines:
+                dict_lines.append(f"\t{s}")
+
+    if len(normal_line_fields) > 0:
+        lines.append(", ".join(normal_line_fields))
+
+    lines.extend(dict_lines)
+
+    return lines
 
 
 def _print_iter_log(solver, outputs, final=False):
@@ -113,18 +150,14 @@ class LogHook(Hook):
 
     def after_epoch(self, solver):
         outputs = solver.epoch_outputs
-        mode_s = []
-        for mode_name, kvs in outputs.items():
-            if len(kvs) == 0:
-                return
-            s = [f"{k}: " + _print_v(v) for k, v in kvs.items()]
-            mode_s.append(f"{mode_name} -> {', '.join(s)}")
-        if len(mode_s) > 1:
-            states = '\n\t'.join(mode_s)
+
+        output_lines = _print_dict(outputs)
+
+        if len(output_lines) > 1:
+            states = '\n\t'.join(output_lines)
             solver.logger.info(
-                f'Epoch [{solver.epoch}/{solver.max_epochs}], \n\t'
-                f'{states}'
+                f'Epoch [{solver.epoch}/{solver.max_epochs}], {states}'
             )
-        elif len(mode_s) == 1:
+        elif len(output_lines) == 1:
             solver.logger.info(
-                f'Epoch [{solver.epoch}/{solver.max_epochs}], {mode_s[0]}')
+                f'Epoch [{solver.epoch}/{solver.max_epochs}], {output_lines[0]}')
