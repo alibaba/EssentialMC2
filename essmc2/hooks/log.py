@@ -55,11 +55,11 @@ def _print_dict(kvs: dict) -> list:
         if '->' not in inner_lines[0]:
             dict_lines.append(f"{key} -> {inner_lines[0]}")
             for s in inner_lines[1:]:
-                dict_lines.append(f"\t{s}")
+                dict_lines.append(f"  {s}")
         else:
             dict_lines.append(f"{key} -> ")
             for s in inner_lines:
-                dict_lines.append(f"\t{s}")
+                dict_lines.append(f"  {s}")
 
     if len(normal_line_fields) > 0:
         lines.append(", ".join(normal_line_fields))
@@ -154,7 +154,7 @@ class LogHook(Hook):
         output_lines = _print_dict(outputs)
 
         if len(output_lines) > 1:
-            states = '\n\t'.join(output_lines)
+            states = '\n  '.join(output_lines)
             solver.logger.info(
                 f'Epoch [{solver.epoch}/{solver.max_epochs}], {states}'
             )
