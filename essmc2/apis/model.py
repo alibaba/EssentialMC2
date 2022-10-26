@@ -18,6 +18,7 @@ def get_model(cfg: Config, logger: Optional[logging.Logger] = None):
 
     if cfg.dist.distributed:
         model = DistributedDataParallel(model,
+                                        find_unused_parameters=cfg.dist.get("find_unused_parameters", False),
                                         device_ids=[torch.cuda.current_device()],
                                         output_device=torch.cuda.current_device())
     return model
